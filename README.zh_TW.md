@@ -124,16 +124,20 @@ typing-particles/
 
 ## 特效展示
 
-| | | |
-|:---:|:---:|:---:|
-| **💥 粒子爆發 (Burst)** | **🔤 文字迴響 (Echo)** | **💫 漩渦吸入 (Vortex)** |
-| ![Burst](docs/gifs/burst.gif) | ![Echo](docs/gifs/echo.gif) | ![Vortex](docs/gifs/vortex.gif) |
-| **⭐ 星光閃爍 (Sparkle)** | **✨ 螢光漫舞 (Firefly)** | **🎊 紙花飄落 (Confetti)** |
-| ![Sparkle](docs/gifs/sparkle.gif) | ![Firefly](docs/gifs/firefly.gif) | ![Confetti](docs/gifs/confetti.gif) |
-| **🫧 泡泡飄浮 (Bubble)** | **❄️ 冰霜結晶 (Frost)** | **🔥 火焰燃燒 (Flame)** |
-| ![Bubble](docs/gifs/bubble.gif) | ![Frost](docs/gifs/frost.gif) | ![Flame](docs/gifs/flame.gif) |
-| **🌊 水波漣漪 (Ripple)** | **⚡ 電流脈衝 (Electric)** | **🌀 擴散漸層 (Diffuse)** |
-| ![Ripple](docs/gifs/ripple.gif) | ![Electric](docs/gifs/electric.gif) | ![Diffuse](docs/gifs/diffuse.gif) |
+| | |
+|:---:|:---:|
+| **💥 粒子爆發 (Burst)** | **🔤 文字迴響 (Echo)** |
+| ![Burst](docs/gifs/burst.gif) | ![Echo](docs/gifs/echo.gif) |
+| **💫 漩渦吸入 (Vortex)** | **⭐ 星光閃爍 (Sparkle)** |
+| ![Vortex](docs/gifs/vortex.gif) | ![Sparkle](docs/gifs/sparkle.gif) |
+| **✨ 螢光漫舞 (Firefly)** | **🎊 紙花飄落 (Confetti)** |
+| ![Firefly](docs/gifs/firefly.gif) | ![Confetti](docs/gifs/confetti.gif) |
+| **🫧 泡泡飄浮 (Bubble)** | **❄️ 冰霜結晶 (Frost)** |
+| ![Bubble](docs/gifs/bubble.gif) | ![Frost](docs/gifs/frost.gif) |
+| **🔥 火焰燃燒 (Flame)** | **🌊 水波漣漪 (Ripple)** |
+| ![Flame](docs/gifs/flame.gif) | ![Ripple](docs/gifs/ripple.gif) |
+| **⚡ 電流脈衝 (Electric)** | **🌀 擴散漸層 (Diffuse)** |
+| ![Electric](docs/gifs/electric.gif) | ![Diffuse](docs/gifs/diffuse.gif) |
 
 > 架構設計與十二種特效的演算法細節請參閱 [docs/implementation.zh_TW.md](docs/implementation.zh_TW.md)
 

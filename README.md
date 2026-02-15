@@ -124,16 +124,20 @@ typing-particles/
 
 ## Effect Showcase
 
-| | | |
-|:---:|:---:|:---:|
-| **💥 Burst** | **🔤 Text Echo** | **💫 Vortex** |
-| ![Burst](docs/gifs/burst.gif) | ![Echo](docs/gifs/echo.gif) | ![Vortex](docs/gifs/vortex.gif) |
-| **⭐ Sparkle** | **✨ Firefly** | **🎊 Confetti** |
-| ![Sparkle](docs/gifs/sparkle.gif) | ![Firefly](docs/gifs/firefly.gif) | ![Confetti](docs/gifs/confetti.gif) |
-| **🫧 Bubble** | **❄️ Frost** | **🔥 Flame** |
-| ![Bubble](docs/gifs/bubble.gif) | ![Frost](docs/gifs/frost.gif) | ![Flame](docs/gifs/flame.gif) |
-| **🌊 Ripple** | **⚡ Electric** | **🌀 Diffuse** |
-| ![Ripple](docs/gifs/ripple.gif) | ![Electric](docs/gifs/electric.gif) | ![Diffuse](docs/gifs/diffuse.gif) |
+| | |
+|:---:|:---:|
+| **💥 Burst** | **🔤 Text Echo** |
+| ![Burst](docs/gifs/burst.gif) | ![Echo](docs/gifs/echo.gif) |
+| **💫 Vortex** | **⭐ Sparkle** |
+| ![Vortex](docs/gifs/vortex.gif) | ![Sparkle](docs/gifs/sparkle.gif) |
+| **✨ Firefly** | **🎊 Confetti** |
+| ![Firefly](docs/gifs/firefly.gif) | ![Confetti](docs/gifs/confetti.gif) |
+| **🫧 Bubble** | **❄️ Frost** |
+| ![Bubble](docs/gifs/bubble.gif) | ![Frost](docs/gifs/frost.gif) |
+| **🔥 Flame** | **🌊 Ripple** |
+| ![Flame](docs/gifs/flame.gif) | ![Ripple](docs/gifs/ripple.gif) |
+| **⚡ Electric** | **🌀 Diffuse** |
+| ![Electric](docs/gifs/electric.gif) | ![Diffuse](docs/gifs/diffuse.gif) |
 
 > For architecture design and algorithm details of all twelve effects, see [docs/implementation.md](docs/implementation.md)
 
