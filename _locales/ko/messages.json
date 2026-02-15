@@ -1,0 +1,56 @@
+{
+  "extName": {
+    "message": "타이핑 파티클"
+  },
+  "extDescription": {
+    "message": "텍스트 입력 시 파티클 효과를 표시합니다. 12가지 효과 내장."
+  },
+  "popupTitle": {
+    "message": "타이핑 파티클"
+  },
+  "enableEffect": {
+    "message": "효과 활성화"
+  },
+  "selectEffect": {
+    "message": "효과 선택"
+  },
+  "particleIntensity": {
+    "message": "파티클 강도"
+  },
+  "effect_burst": {
+    "message": "버스트"
+  },
+  "effect_echo": {
+    "message": "텍스트 에코"
+  },
+  "effect_vortex": {
+    "message": "소용돌이"
+  },
+  "effect_sparkle": {
+    "message": "스파클"
+  },
+  "effect_firefly": {
+    "message": "반딧불이"
+  },
+  "effect_confetti": {
+    "message": "꽃가루"
+  },
+  "effect_bubble": {
+    "message": "비눗방울"
+  },
+  "effect_frost": {
+    "message": "서리 결정"
+  },
+  "effect_flame": {
+    "message": "불꽃"
+  },
+  "effect_ripple": {
+    "message": "물결"
+  },
+  "effect_electric": {
+    "message": "전격"
+  },
+  "effect_diffuse": {
+    "message": "확산"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "extName": {
+    "message": "Partículas al Escribir"
+  },
+  "extDescription": {
+    "message": "Muestra efectos de partículas al escribir en cualquier campo de texto. 12 efectos incluidos."
+  },
+  "popupTitle": {
+    "message": "Partículas al Escribir"
+  },
+  "enableEffect": {
+    "message": "Activar efectos"
+  },
+  "selectEffect": {
+    "message": "Elegir efecto"
+  },
+  "particleIntensity": {
+    "message": "Intensidad de partículas"
+  },
+  "effect_burst": {
+    "message": "Explosión"
+  },
+  "effect_echo": {
+    "message": "Eco de texto"
+  },
+  "effect_vortex": {
+    "message": "Vórtice"
+  },
+  "effect_sparkle": {
+    "message": "Destello"
+  },
+  "effect_firefly": {
+    "message": "Luciérnaga"
+  },
+  "effect_confetti": {
+    "message": "Confeti"
+  },
+  "effect_bubble": {
+    "message": "Burbujas"
+  },
+  "effect_frost": {
+    "message": "Escarcha"
+  },
+  "effect_flame": {
+    "message": "Llama"
+  },
+  "effect_ripple": {
+    "message": "Ondas"
+  },
+  "effect_electric": {
+    "message": "Eléctrico"
+  },
+  "effect_diffuse": {
+    "message": "Difusión"
+  }
+}

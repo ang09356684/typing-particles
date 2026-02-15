@@ -1,0 +1,56 @@
+{
+  "extName": {
+    "message": "打字粒子特效"
+  },
+  "extDescription": {
+    "message": "在任何文本输入框打字时显示粒子特效，内置 12 种特效。"
+  },
+  "popupTitle": {
+    "message": "打字粒子特效"
+  },
+  "enableEffect": {
+    "message": "启用特效"
+  },
+  "selectEffect": {
+    "message": "选择特效"
+  },
+  "particleIntensity": {
+    "message": "粒子强度"
+  },
+  "effect_burst": {
+    "message": "粒子爆发"
+  },
+  "effect_echo": {
+    "message": "文字回响"
+  },
+  "effect_vortex": {
+    "message": "漩涡吸入"
+  },
+  "effect_sparkle": {
+    "message": "星光闪烁"
+  },
+  "effect_firefly": {
+    "message": "萤光漫舞"
+  },
+  "effect_confetti": {
+    "message": "纸花飘落"
+  },
+  "effect_bubble": {
+    "message": "泡泡飘浮"
+  },
+  "effect_frost": {
+    "message": "冰霜结晶"
+  },
+  "effect_flame": {
+    "message": "火焰上升"
+  },
+  "effect_ripple": {
+    "message": "水波涟漪"
+  },
+  "effect_electric": {
+    "message": "电流脉冲"
+  },
+  "effect_diffuse": {
+    "message": "扩散渐层"
+  }
+}

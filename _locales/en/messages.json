@@ -1,0 +1,56 @@
+{
+  "extName": {
+    "message": "Typing Particles"
+  },
+  "extDescription": {
+    "message": "Display particle effects when typing in any text input field. 12 built-in effects."
+  },
+  "popupTitle": {
+    "message": "Typing Particles"
+  },
+  "enableEffect": {
+    "message": "Enable Effects"
+  },
+  "selectEffect": {
+    "message": "Choose Effect"
+  },
+  "particleIntensity": {
+    "message": "Particle Intensity"
+  },
+  "effect_burst": {
+    "message": "Burst"
+  },
+  "effect_echo": {
+    "message": "Text Echo"
+  },
+  "effect_vortex": {
+    "message": "Vortex"
+  },
+  "effect_sparkle": {
+    "message": "Sparkle"
+  },
+  "effect_firefly": {
+    "message": "Firefly"
+  },
+  "effect_confetti": {
+    "message": "Confetti"
+  },
+  "effect_bubble": {
+    "message": "Bubble"
+  },
+  "effect_frost": {
+    "message": "Frost"
+  },
+  "effect_flame": {
+    "message": "Flame"
+  },
+  "effect_ripple": {
+    "message": "Ripple"
+  },
+  "effect_electric": {
+    "message": "Electric"
+  },
+  "effect_diffuse": {
+    "message": "Diffuse"
+  }
+}

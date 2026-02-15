@@ -1,0 +1,56 @@
+{
+  "extName": {
+    "message": "タイピングパーティクル"
+  },
+  "extDescription": {
+    "message": "テキスト入力時にパーティクルエフェクトを表示します。12種類のエフェクトを内蔵。"
+  },
+  "popupTitle": {
+    "message": "タイピングパーティクル"
+  },
+  "enableEffect": {
+    "message": "エフェクトを有効化"
+  },
+  "selectEffect": {
+    "message": "エフェクトを選択"
+  },
+  "particleIntensity": {
+    "message": "パーティクル強度"
+  },
+  "effect_burst": {
+    "message": "バースト"
+  },
+  "effect_echo": {
+    "message": "テキストエコー"
+  },
+  "effect_vortex": {
+    "message": "渦巻き"
+  },
+  "effect_sparkle": {
+    "message": "スパークル"
+  },
+  "effect_firefly": {
+    "message": "蛍の光"
+  },
+  "effect_confetti": {
+    "message": "紙吹雪"
+  },
+  "effect_bubble": {
+    "message": "シャボン玉"
+  },
+  "effect_frost": {
+    "message": "氷の結晶"
+  },
+  "effect_flame": {
+    "message": "炎"
+  },
+  "effect_ripple": {
+    "message": "波紋"
+  },
+  "effect_electric": {
+    "message": "電撃"
+  },
+  "effect_diffuse": {
+    "message": "拡散"
+  }
+}
