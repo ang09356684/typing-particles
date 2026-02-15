@@ -1,12 +1,12 @@
 {
   "extName": {
-    "message": "Typing Particles"
+    "message": "TypeSpark"
   },
   "extDescription": {
     "message": "Display particle effects when typing in any text input field. 12 built-in effects."
   },
   "popupTitle": {
-    "message": "Typing Particles"
+    "message": "TypeSpark"
   },
   "enableEffect": {
     "message": "Enable Effects"

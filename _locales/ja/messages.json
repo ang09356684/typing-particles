@@ -1,12 +1,12 @@
 {
   "extName": {
-    "message": "タイピングパーティクル"
+    "message": "タイプスパーク"
   },
   "extDescription": {
     "message": "テキスト入力時にパーティクルエフェクトを表示します。12種類のエフェクトを内蔵。"
   },
   "popupTitle": {
-    "message": "タイピングパーティクル"
+    "message": "タイプスパーク"
   },
   "enableEffect": {
     "message": "エフェクトを有効化"

@@ -1,12 +1,12 @@
 {
   "extName": {
-    "message": "打字粒子特效"
+    "message": "TypeSpark"
   },
   "extDescription": {
     "message": "在任何文字輸入框打字時顯示粒子特效，內建 12 種特效。"
   },
   "popupTitle": {
-    "message": "打字粒子特效"
+    "message": "TypeSpark"
   },
   "enableEffect": {
     "message": "啟用特效"

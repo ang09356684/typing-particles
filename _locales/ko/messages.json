@@ -1,12 +1,12 @@
 {
   "extName": {
-    "message": "타이핑 파티클"
+    "message": "타이프스파크"
   },
   "extDescription": {
     "message": "텍스트 입력 시 파티클 효과를 표시합니다. 12가지 효과 내장."
   },
   "popupTitle": {
-    "message": "타이핑 파티클"
+    "message": "타이프스파크"
   },
   "enableEffect": {
     "message": "효과 활성화"
