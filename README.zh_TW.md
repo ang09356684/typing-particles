@@ -16,6 +16,7 @@
    - [粒子引擎：物件池模式](#粒子引擎物件池模式)
    - [事件監聽策略](#事件監聽策略)
    - [設定同步機制](#設定同步機制)
+   - [背景自適應配色](#背景自適應配色)
 5. [十二種特效的實作方式與演算法](#十二種特效的實作方式與演算法)
    - [特效 1：💥 粒子爆發 (Burst)](#特效-1-粒子爆發-burst)
    - [特效 2：🔤 文字迴響 (Echo)](#特效-2-文字迴響-echo)
@@ -50,6 +51,7 @@
 | 隱私保護 | 自動跳過 `<input type="password">` |
 | IME 支援 | 組字期間抑制，確認輸入時觸發 |
 | iframe 支援 | `all_frames: true`，子框架中的輸入框同樣生效 |
+| 背景自適應配色 | 自動偵測輸入框背景亮度，切換深色/淺色配色方案，確保任何背景下特效都清晰可見 |
 | 零干擾 | Canvas 層 `pointer-events: none`，不影響任何頁面互動 |
 
 ---
@@ -85,6 +87,8 @@
 - [ ] 快速連續打字時無卡頓（Performance 面板確認無掉幀）
 - [ ] 在含有 iframe 的頁面中（如 CodePen），iframe 內的輸入框也有特效
 - [ ] 使用注音/拼音等 IME 輸入法：組字過程無粒子，按下 Enter 確認後觸發
+- [ ] 在淺色背景的輸入框（如 Google 搜尋）中，特效使用深色配色方案，清晰可見
+- [ ] 在深色背景的輸入框中，特效使用亮色配色方案
 
 ---
 
@@ -162,7 +166,10 @@ CaretDetector.detect(target)
 取得游標 viewport 座標 { x, y }
     │
     ▼
-組裝 context { char, fontFamily, fontSize, fontWeight }
+偵測背景亮度 → isDarkBg
+    │
+    ▼
+組裝 context { isDarkBg, char, fontFamily, fontSize, fontWeight }
     │
     ▼
 ParticleEngine.spawn(x, y, intensity, context)
@@ -369,14 +376,15 @@ compositionend → _composing = false → 立即觸發一次 _onInput()
 
 **Context 組裝**：
 
-對於「擴散漸層」和「文字迴響」等需要知道具體字元的特效，`content.js` 在每次 input 事件中組裝 context：
+`content.js` 在每次 input 事件中組裝 context，包含背景亮度偵測結果與字元資訊（供「擴散漸層」和「文字迴響」等特效使用）：
 
 ```javascript
 context = {
-  char: e.data.slice(-1),                    // 最後輸入的字元
-  fontFamily: computedStyle.fontFamily,       // 輸入框的字型
-  fontSize: parseFloat(computedStyle.fontSize), // 字體大小（px）
-  fontWeight: computedStyle.fontWeight         // 字重
+  isDarkBg: _detectIsDarkBg(target),           // 背景亮度偵測
+  char: e.data.slice(-1),                      // 最後輸入的字元
+  fontFamily: computedStyle.fontFamily,         // 輸入框的字型
+  fontSize: parseFloat(computedStyle.fontSize),  // 字體大小（px）
+  fontWeight: computedStyle.fontWeight           // 字重
 };
 ```
 
@@ -398,6 +406,57 @@ Popup 面板                    Content Script
 - **儲存**：`chrome.storage.sync`（跨裝置同步，最大 100KB）
 - **即時生效**：Content Script 透過 `chrome.storage.onChanged` 監聽，收到變更立即套用，無需重載頁面
 - **無「儲存」按鈕**：Popup 中每個操作直接寫入 storage
+
+### 背景自適應配色
+
+**檔案**：`content/content.js`、`prototype/prototype.js`
+
+許多特效使用淺色系（白色、淺青、淺黃綠）在深色背景上非常好看，但在白色背景下幾乎看不到。為了解決這個問題，每次輸入事件都會偵測背景亮度，特效自動切換深色/淺色兩套配色方案。
+
+#### 偵測演算法
+
+```
+_detectIsDarkBg(element):
+    current = element
+    while current 存在且不是 <html>:
+        bg = getComputedStyle(current).backgroundColor
+        解析 rgba(r, g, b, a)
+
+        if a < 0.1 → 透明，向上走訪父元素
+        else:
+            luminance = (0.299×R + 0.587×G + 0.114×B) / 255
+            return luminance < 0.5    // true = 深色背景
+        current = current.parentElement
+
+    return false  // 預設：假設淺色背景
+```
+
+設計要點：
+- **DOM 向上走訪**：從輸入框元素本身開始，逐層往父元素走訪，直到找到非透明的背景色
+- **透明度處理**：`rgba(..., 0)` 或極低 alpha 的元素會被跳過（視為透明）
+- **ITU-R BT.601 亮度公式**：`0.299R + 0.587G + 0.114B` 根據人眼對 RGB 三通道的敏感度加權（綠 > 紅 > 藍）
+- **閾值 0.5**：低於 0.5 判定為深色背景，高於則為淺色背景
+
+#### 雙配色方案設計
+
+每個特效定義深色背景與淺色背景兩組配色，根據 `context.isDarkBg` 選擇：
+
+| 特效 | 深色背景配色 | 淺色背景配色 |
+|------|-------------|-------------|
+| 電流脈衝 | 白 / 淺青 `#FFFFFF #67E8F9` | 深藍 / 紫 `#1E40AF #6366F1` |
+| 螢光漫舞 | 淺黃綠 `#FBBF24 #A3E635` | 深琥珀 / 深綠 `#B45309 #15803D` |
+| 星光閃爍 | 白 / 米 `#FFFFFF #FFFACD` | 琥珀 / 藍 / 粉紅 `#F59E0B #3B82F6` |
+| 冰霜結晶 | 白 / 冰藍 `#FFFFFF #E0F2FE` | 深藍 `#1E40AF #2563EB` |
+| 粒子爆發 | 金 / 白 `#FFD700 #FFFFFF` | 深棕 / 紫 `#B45309 #7C3AED` |
+| 漩渦吸入 | 淺紫系 + 白色核心 | 深紫系 + 同色核心 |
+| 水波漣漪 | 青 → 藍 | 深青 → 深藍 |
+| 火焰燃燒 | 亮黃 → 暗紅 | 深橙 → 極暗紅 |
+| 泡泡飄浮 | 淺色 + 白色高光 | 深色 + 同色高光 |
+| 文字迴響 | 青 / 白 | 深青 / 靛藍 |
+| 擴散漸層 | 淺紫 / 青 / 白 | 深紫 / 深青 |
+| 紙花飄落 | 高飽和度（不變） | 高飽和度（不變） |
+
+具有白色內核的特效（電流脈衝、螢光漫舞、漩渦吸入、泡泡飄浮）在淺色背景下會將核心顏色切換為粒子本身的顏色，確保可見度的同時不失雙層渲染的效果。
 
 ---
 
@@ -1009,6 +1068,7 @@ const MyEffect = {
 | `willReadFrequently` 提示 | getImageData 使用 CPU 路徑，更快 |
 | 大字體像素步長 ×2 | 邊緣偵測掃描量減少 75% |
 | Closed Shadow DOM | 頁面 CSS 無法觸發重排 |
+| 背景偵測 DOM 走訪 | 每次輸入一次 `getComputedStyle`，成本可忽略 |
 
 典型快速打字場景（10 次/秒）：每幀渲染 ~100 個粒子，耗時約 0.5-1ms，遠在 16.6ms 幀預算內。
 

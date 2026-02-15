@@ -16,6 +16,7 @@ A Chrome Extension that displays real-time particle effect animations when users
    - [Particle Engine: Object Pool Pattern](#particle-engine-object-pool-pattern)
    - [Event Listening Strategy](#event-listening-strategy)
    - [Settings Synchronization Mechanism](#settings-synchronization-mechanism)
+   - [Background Adaptive Color Detection](#background-adaptive-color-detection)
 5. [Implementation & Algorithms of the Twelve Effects](#implementation--algorithms-of-the-twelve-effects)
    - [Effect 1: 💥 Burst](#effect-1--burst)
    - [Effect 2: 🔤 Text Echo](#effect-2--text-echo)
@@ -50,6 +51,7 @@ A Chrome Extension that displays real-time particle effect animations when users
 | Privacy protection | Automatically skips `<input type="password">` |
 | IME support | Suppressed during composition, triggered on input confirmation |
 | iframe support | `all_frames: true`, input fields within child frames also work |
+| Adaptive background colors | Automatically detects input field background brightness and switches between dark/light color palettes for optimal visibility on any background |
 | Zero interference | Canvas layer uses `pointer-events: none`, does not affect any page interaction |
 
 ---
@@ -85,6 +87,8 @@ A Chrome Extension that displays real-time particle effect animations when users
 - [ ] No stuttering during rapid typing (confirm no dropped frames in the Performance panel)
 - [ ] On pages with iframes (e.g., CodePen), input fields within iframes also show effects
 - [ ] Using IME input methods such as Zhuyin/Pinyin: no particles during composition, triggered after pressing Enter to confirm
+- [ ] On light background input fields (e.g., Google Search), effects use darker color palettes and remain clearly visible
+- [ ] On dark background input fields, effects use lighter/brighter color palettes
 
 ---
 
@@ -162,7 +166,10 @@ CaretDetector.detect(target)
 Obtain caret viewport coordinates { x, y }
     │
     ▼
-Assemble context { char, fontFamily, fontSize, fontWeight }
+Detect background brightness → isDarkBg
+    │
+    ▼
+Assemble context { isDarkBg, char, fontFamily, fontSize, fontWeight }
     │
     ▼
 ParticleEngine.spawn(x, y, intensity, context)
@@ -369,14 +376,15 @@ compositionend → _composing = false → immediately trigger one _onInput()
 
 **Context Assembly**:
 
-For effects like "Diffuse" and "Text Echo" that need to know the specific character, `content.js` assembles the context on each input event:
+On each input event, `content.js` assembles context including background brightness detection and character info (for effects like "Diffuse" and "Text Echo"):
 
 ```javascript
 context = {
-  char: e.data.slice(-1),                    // Last typed character
-  fontFamily: computedStyle.fontFamily,       // Input field's font
-  fontSize: parseFloat(computedStyle.fontSize), // Font size (px)
-  fontWeight: computedStyle.fontWeight         // Font weight
+  isDarkBg: _detectIsDarkBg(target),           // Background brightness detection
+  char: e.data.slice(-1),                      // Last typed character
+  fontFamily: computedStyle.fontFamily,         // Input field's font
+  fontSize: parseFloat(computedStyle.fontSize),  // Font size (px)
+  fontWeight: computedStyle.fontWeight           // Font weight
 };
 ```
 
@@ -399,6 +407,57 @@ Popup Panel                      Content Script
 - **Storage**: `chrome.storage.sync` (cross-device sync, 100KB max)
 - **Instant effect**: Content Script listens via `chrome.storage.onChanged`, applies changes immediately upon receiving them, no page reload needed
 - **No "Save" button**: Every action in the Popup writes directly to storage
+
+### Background Adaptive Color Detection
+
+**Files**: `content/content.js`, `prototype/prototype.js`
+
+Many effects use light colors (white, light cyan, light yellow-green) that look great on dark backgrounds but become nearly invisible on white backgrounds. To solve this, each input event triggers a background brightness detection, and effects automatically switch between two color palettes.
+
+#### Detection Algorithm
+
+```
+_detectIsDarkBg(element):
+    current = element
+    while current exists and is not <html>:
+        bg = getComputedStyle(current).backgroundColor
+        parse rgba(r, g, b, a)
+
+        if a < 0.1 → transparent, walk up to parent
+        else:
+            luminance = (0.299×R + 0.587×G + 0.114×B) / 255
+            return luminance < 0.5    // true = dark background
+        current = current.parentElement
+
+    return false  // default: assume light background
+```
+
+Key points:
+- **DOM tree walk-up**: Starts from the input element itself and walks up through parent elements until a non-transparent background is found
+- **Transparency handling**: Elements with `rgba(..., 0)` or very low alpha are skipped (treated as transparent)
+- **ITU-R BT.601 luminance formula**: `0.299R + 0.587G + 0.114B` weights human visual sensitivity to RGB channels (green > red > blue)
+- **Threshold 0.5**: Below 0.5 = dark background, above = light background
+
+#### Dual Palette Design
+
+Each effect defines two color palettes and selects based on `context.isDarkBg`:
+
+| Effect | Dark Background Palette | Light Background Palette |
+|--------|------------------------|-------------------------|
+| Electric | White / Light Cyan `#FFFFFF #67E8F9` | Deep Blue / Purple `#1E40AF #6366F1` |
+| Firefly | Light Yellow-Green `#FBBF24 #A3E635` | Deep Amber / Dark Green `#B45309 #15803D` |
+| Sparkle | White / Cream `#FFFFFF #FFFACD` | Amber / Blue / Pink `#F59E0B #3B82F6` |
+| Frost | White / Ice Blue `#FFFFFF #E0F2FE` | Deep Blue `#1E40AF #2563EB` |
+| Burst | Gold / White `#FFD700 #FFFFFF` | Deep Brown / Purple `#B45309 #7C3AED` |
+| Vortex | Light Purple + White core | Deep Purple + Same-color core |
+| Ripple | Cyan → Blue | Deep Cyan → Deep Blue |
+| Flame | Bright Yellow → Dark Red | Deep Orange → Very Dark Red |
+| Bubble | Light colors + White highlight | Deep colors + Same-color highlight |
+| Echo | Cyan / White | Deep Cyan / Indigo |
+| Diffuse | Light Purple / Cyan / White | Deep Purple / Deep Cyan |
+| Confetti | High saturation (unchanged) | High saturation (unchanged) |
+
+Effects with white inner cores (Electric, Firefly, Vortex, Bubble) switch their core color to match the particle's own color on light backgrounds, ensuring visibility without losing the dual-layer rendering effect.
 
 ---
 
@@ -1010,6 +1069,7 @@ Uses the Chrome Extension built-in `chrome.i18n` API, automatically displaying t
 | `willReadFrequently` hint | getImageData uses CPU path, faster |
 | Large font pixel step ×2 | Edge detection scan volume reduced by 75% |
 | Closed Shadow DOM | Page CSS cannot trigger reflow |
+| Background detection via DOM walk-up | One `getComputedStyle` call per input, negligible cost |
 
 Typical rapid typing scenario (10 keystrokes/sec): ~100 particles rendered per frame, taking approximately 0.5-1ms, well within the 16.6ms frame budget.
 
