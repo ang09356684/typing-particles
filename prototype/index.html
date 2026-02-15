@@ -30,7 +30,7 @@
           <button class="effect-card" data-effect="confetti">🎊 紙花飄落</button>
           <button class="effect-card" data-effect="bubble">🫧 泡泡飄浮</button>
           <button class="effect-card" data-effect="frost">❄️ 冰霜結晶</button>
-          <button class="effect-card" data-effect="flame">🔥 火焰上升</button>
+          <button class="effect-card" data-effect="flame">🔥 火焰燃燒</button>
           <button class="effect-card" data-effect="ripple">🌊 水波漣漪</button>
           <button class="effect-card" data-effect="electric">⚡ 電流脈衝</button>
           <button class="effect-card" data-effect="diffuse">🌀 擴散漸層</button>
@@ -47,24 +47,32 @@
       </div>
     </div>
 
-    <!-- Test inputs -->
+    <!-- Test inputs: Dark background -->
+    <h2 class="section-title">深色背景測試</h2>
     <div class="test-section">
-      <h2>Text Input</h2>
-      <input type="text" placeholder="在這裡打字..." class="test-input">
+      <input type="text" placeholder="在這裡打字（深色背景）..." class="test-input">
+    </div>
+    <div class="test-section">
+      <textarea rows="3" placeholder="在這裡打字（深色背景）..." class="test-input"></textarea>
+    </div>
+    <div class="test-section">
+      <div contenteditable="true" class="test-input editable" data-placeholder="在這裡打字（深色背景）..."></div>
+    </div>
+
+    <!-- Test inputs: Light background -->
+    <h2 class="section-title">淺色背景測試</h2>
+    <div class="test-section">
+      <input type="text" placeholder="在這裡打字（淺色背景）..." class="test-input light-bg">
+    </div>
+    <div class="test-section">
+      <textarea rows="3" placeholder="在這裡打字（淺色背景）..." class="test-input light-bg"></textarea>
+    </div>
+    <div class="test-section">
+      <div contenteditable="true" class="test-input editable light-bg" data-placeholder="在這裡打字（淺色背景）..."></div>
     </div>
 
     <div class="test-section">
-      <h2>Textarea</h2>
-      <textarea rows="4" placeholder="在這裡打字..." class="test-input"></textarea>
-    </div>
-
-    <div class="test-section">
-      <h2>Content Editable</h2>
-      <div contenteditable="true" class="test-input editable" data-placeholder="在這裡打字..."></div>
-    </div>
-
-    <div class="test-section">
-      <h2>Password (應跳過)</h2>
+      <h2 class="section-title">Password (應跳過)</h2>
       <input type="password" placeholder="不應出現粒子效果" class="test-input">
     </div>
   </div>

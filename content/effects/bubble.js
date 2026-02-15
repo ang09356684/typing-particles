@@ -5,11 +5,13 @@ const BubbleEffect = {
   label: '泡泡飄浮',
   icon: '🫧',
 
-  _colors: ['#67E8F9', '#A78BFA', '#FDE68A', '#FCA5A5', '#86EFAC', '#F9A8D4'],
+  _colorsDark: ['#67E8F9', '#A78BFA', '#FDE68A', '#FCA5A5', '#86EFAC', '#F9A8D4'],
+  _colorsLight: ['#0891B2', '#7C3AED', '#D97706', '#DC2626', '#16A34A', '#DB2777'],
 
-  spawn(x, y, intensity, acquire) {
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((4 + Math.random() * 6) * intensity);
-    const colors = this._colors;
+    const isDark = context && context.isDarkBg;
+    const colors = isDark ? this._colorsDark : this._colorsLight;
 
     for (let i = 0; i < count; i++) {
       const p = acquire();
@@ -28,6 +30,7 @@ const BubbleEffect = {
       p.scale = 1;
       p.custom.phase = Math.random() * Math.PI * 2; // sway phase
       p.custom.swayAmp = 0.3 + Math.random() * 0.4;
+      p.custom.isDark = isDark;
     }
   },
 
@@ -87,7 +90,7 @@ const BubbleEffect = {
 
     // Specular highlight
     ctx.globalAlpha = p.alpha * 0.7;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = p.custom.isDark ? '#FFFFFF' : `rgba(${rgb},0.6)`;
     ctx.beginPath();
     ctx.ellipse(
       p.x - r * 0.3, p.y - r * 0.3,

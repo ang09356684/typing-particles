@@ -5,9 +5,13 @@ const ElectricEffect = {
   label: '電流脈衝',
   icon: '⚡',
 
-  spawn(x, y, intensity, acquire) {
+  _colorsDark: ['#FFFFFF', '#67E8F9', '#A5F3FC', '#E0F2FE'],
+  _colorsLight: ['#1E40AF', '#3B82F6', '#6366F1', '#7C3AED'],
+
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((2 + Math.random() * 2) * intensity);
-    const colors = ['#FFFFFF', '#67E8F9', '#A5F3FC', '#E0F2FE'];
+    const isDark = context && context.isDarkBg;
+    const colors = isDark ? this._colorsDark : this._colorsLight;
 
     for (let i = 0; i < count; i++) {
       const p = acquire();
@@ -40,6 +44,7 @@ const ElectricEffect = {
       p.rotation = 0;
       p.scale = 1;
       p.custom.path = path;
+      p.custom.coreColor = isDark ? '#FFFFFF' : '#1E3A8A';
     }
   },
 
@@ -78,7 +83,7 @@ const ElectricEffect = {
 
     // Bright core
     ctx.globalAlpha = p.alpha;
-    ctx.strokeStyle = '#FFFFFF';
+    ctx.strokeStyle = p.custom.coreColor || '#FFFFFF';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(p.x + path[0].x, p.y + path[0].y);
@@ -88,7 +93,7 @@ const ElectricEffect = {
     ctx.stroke();
 
     // Spark dots at branch points
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = p.custom.coreColor || '#FFFFFF';
     for (let i = 1; i < path.length - 1; i++) {
       if (Math.random() < 0.4) {
         ctx.globalAlpha = p.alpha * 0.8;

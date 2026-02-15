@@ -19,7 +19,10 @@ const EchoEffect = {
 
     // Spawn 3 staggered echo rings
     const layers = Math.max(2, Math.floor(3 * intensity));
-    const colors = ['#67E8F9', '#A78BFA', '#FDE68A', '#F9A8D4', '#FFFFFF'];
+    const isDark = context && context.isDarkBg;
+    const colorsDark = ['#67E8F9', '#A78BFA', '#FDE68A', '#F9A8D4', '#FFFFFF'];
+    const colorsLight = ['#0891B2', '#7C3AED', '#D97706', '#DB2777', '#4F46E5'];
+    const colors = isDark ? colorsDark : colorsLight;
     const color = colors[Math.floor(Math.random() * colors.length)];
 
     for (let i = 0; i < layers; i++) {

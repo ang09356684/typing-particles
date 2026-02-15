@@ -5,8 +5,9 @@ const RippleEffect = {
   label: '水波漣漪',
   icon: '🌊',
 
-  spawn(x, y, intensity, acquire) {
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((2 + Math.random() * 2) * intensity); // 2-3 rings
+    const isDark = context && context.isDarkBg;
 
     for (let i = 0; i < count; i++) {
       const p = acquire();
@@ -16,15 +17,16 @@ const RippleEffect = {
       p.y = y;
       p.vx = 0;
       p.vy = 0;
-      p.size = 2 + i * 3;  // stagger initial size so rings don't overlap
+      p.size = 2 + i * 3;
       p.life = 0;
-      p.maxLife = 25 + Math.floor(Math.random() * 15); // 25-40 frames
+      p.maxLife = 25 + Math.floor(Math.random() * 15);
       p.color = '';
       p.alpha = 1;
       p.rotation = 0;
       p.scale = 1;
-      p.custom.expandSpeed = 1.2 + Math.random() * 0.8; // 1.2-2.0 px/frame
-      p.custom.delay = i * 4; // stagger appearance
+      p.custom.expandSpeed = 1.2 + Math.random() * 0.8;
+      p.custom.delay = i * 4;
+      p.custom.isDark = isDark;
     }
   },
 
@@ -42,13 +44,15 @@ const RippleEffect = {
     p.size += p.custom.expandSpeed;
     p.alpha = 1 - progress * progress; // quadratic fade
 
-    // Color shifts from bright cyan to blue as it expands
-    if (progress < 0.3) {
-      p.color = '#67E8F9';
-    } else if (progress < 0.6) {
-      p.color = '#38BDF8';
+    // Color shifts as it expands
+    if (p.custom.isDark) {
+      if (progress < 0.3) p.color = '#67E8F9';
+      else if (progress < 0.6) p.color = '#38BDF8';
+      else p.color = '#3B82F6';
     } else {
-      p.color = '#3B82F6';
+      if (progress < 0.3) p.color = '#0369A1';
+      else if (progress < 0.6) p.color = '#1D4ED8';
+      else p.color = '#1E3A8A';
     }
   },
 

@@ -2,10 +2,10 @@
 
 const FlameEffect = {
   name: 'flame',
-  label: '火焰上升',
+  label: '火焰燃燒',
   icon: '🔥',
 
-  spawn(x, y, intensity, acquire) {
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((8 + Math.random() * 10) * intensity);
 
     for (let i = 0; i < count; i++) {
@@ -24,6 +24,7 @@ const FlameEffect = {
       p.rotation = 0;
       p.scale = 1;
       p.custom.initialSize = p.size;
+      p.custom.isDark = context && context.isDarkBg;
     }
   },
 
@@ -39,15 +40,17 @@ const FlameEffect = {
     const progress = p.life / p.maxLife;
     p.alpha = 1 - progress * progress;
 
-    // Color shift: bright yellow → orange → red → dark red
-    if (progress < 0.25) {
-      p.color = '#FFFF80';
-    } else if (progress < 0.5) {
-      p.color = '#FFA500';
-    } else if (progress < 0.75) {
-      p.color = '#FF4500';
+    // Color shift
+    if (p.custom.isDark) {
+      if (progress < 0.25) p.color = '#FFFF80';
+      else if (progress < 0.5) p.color = '#FFA500';
+      else if (progress < 0.75) p.color = '#FF4500';
+      else p.color = '#8B0000';
     } else {
-      p.color = '#8B0000';
+      if (progress < 0.25) p.color = '#FF8C00';
+      else if (progress < 0.5) p.color = '#DC2626';
+      else if (progress < 0.75) p.color = '#991B1B';
+      else p.color = '#450A0A';
     }
   },
 

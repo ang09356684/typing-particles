@@ -5,9 +5,13 @@ const SparkleEffect = {
   label: '星光閃爍',
   icon: '⭐',
 
-  spawn(x, y, intensity, acquire) {
+  _colorsDark: ['#FFFFFF', '#FFFACD', '#87CEEB'],
+  _colorsLight: ['#F59E0B', '#3B82F6', '#EC4899'],
+
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((4 + Math.random() * 6) * intensity);
-    const colors = ['#FFFFFF', '#FFFACD', '#87CEEB'];
+    const isDark = context && context.isDarkBg;
+    const colors = isDark ? this._colorsDark : this._colorsLight;
 
     for (let i = 0; i < count; i++) {
       const p = acquire();

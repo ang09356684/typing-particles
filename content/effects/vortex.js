@@ -5,11 +5,13 @@ const VortexEffect = {
   label: '漩渦吸入',
   icon: '💫',
 
-  _colors: ['#C084FC', '#A78BFA', '#818CF8', '#67E8F9', '#F0ABFC', '#FFFFFF'],
+  _colorsDark: ['#C084FC', '#A78BFA', '#818CF8', '#67E8F9', '#F0ABFC', '#FFFFFF'],
+  _colorsLight: ['#7C3AED', '#6D28D9', '#4F46E5', '#0891B2', '#A21CAF', '#4338CA'],
 
-  spawn(x, y, intensity, acquire) {
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((6 + Math.random() * 8) * intensity);
-    const colors = this._colors;
+    const isDark = context && context.isDarkBg;
+    const colors = isDark ? this._colorsDark : this._colorsLight;
 
     for (let i = 0; i < count; i++) {
       const p = acquire();
@@ -34,7 +36,8 @@ const VortexEffect = {
       p.custom.angle = angle;
       p.custom.dist = dist;
       p.custom.spinSpeed = 0.15 + Math.random() * 0.1; // radians per frame
-      p.custom.spinDir = Math.random() < 0.5 ? 1 : -1; // consistent per spawn batch would be better but random is fine
+      p.custom.spinDir = Math.random() < 0.5 ? 1 : -1;
+      p.custom.isDark = isDark;
     }
   },
 
@@ -71,7 +74,7 @@ const VortexEffect = {
 
     // Core dot
     ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = p.custom.isDark ? '#FFFFFF' : p.color;
     ctx.beginPath();
     ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     ctx.fill();

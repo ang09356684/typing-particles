@@ -7,7 +7,7 @@ const ConfettiEffect = {
 
   _colors: ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#FF6BD6', '#845EC2', '#FF9671', '#00C9A7'],
 
-  spawn(x, y, intensity, acquire) {
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((5 + Math.random() * 8) * intensity);
     const colors = this._colors;
 

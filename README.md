@@ -1,136 +1,136 @@
-# Typing Particles — 打字粒子特效
+# Typing Particles
 
-一個 Chrome Extension，在使用者於任何網頁的文字輸入框打字時，即時顯示粒子特效動畫。提供 12 種視覺風格供切換，支援多國語系（English / 繁中 / 簡中 / 日 / 韓 / 西班牙文），所有設定透過 Popup 面板操作，即時生效。
-
----
-
-## 目錄
-
-1. [功能總覽](#功能總覽)
-2. [安裝與測試方式](#安裝與測試方式)
-3. [檔案結構](#檔案結構)
-4. [架構設計](#架構設計)
-   - [整體資料流](#整體資料流)
-   - [渲染層：全螢幕 Canvas 覆蓋層](#渲染層全螢幕-canvas-覆蓋層)
-   - [游標位置偵測](#游標位置偵測)
-   - [粒子引擎：物件池模式](#粒子引擎物件池模式)
-   - [事件監聽策略](#事件監聽策略)
-   - [設定同步機制](#設定同步機制)
-5. [十二種特效的實作方式與演算法](#十二種特效的實作方式與演算法)
-   - [特效 1：💥 粒子爆發 (Burst)](#特效-1-粒子爆發-burst)
-   - [特效 2：🔤 文字迴響 (Echo)](#特效-2-文字迴響-echo)
-   - [特效 3：💫 漩渦吸入 (Vortex)](#特效-3-漩渦吸入-vortex)
-   - [特效 4：⭐ 星光閃爍 (Sparkle)](#特效-4-星光閃爍-sparkle)
-   - [特效 5：✨ 螢光漫舞 (Firefly)](#特效-5-螢光漫舞-firefly)
-   - [特效 6：🎊 紙花飄落 (Confetti)](#特效-6-紙花飄落-confetti)
-   - [特效 7：🫧 泡泡飄浮 (Bubble)](#特效-7-泡泡飄浮-bubble)
-   - [特效 8：❄️ 冰霜結晶 (Frost)](#特效-8-冰霜結晶-frost)
-   - [特效 9：🔥 火焰上升 (Flame)](#特效-9-火焰上升-flame)
-   - [特效 10：🌊 水波漣漪 (Ripple)](#特效-10-水波漣漪-ripple)
-   - [特效 11：⚡ 電流脈衝 (Electric)](#特效-11-電流脈衝-electric)
-   - [特效 12：🌀 擴散漸層 (Diffuse)](#特效-12-擴散漸層-diffuse)
-6. [特效介面規範與擴充方式](#特效介面規範與擴充方式)
-7. [多國語系 (i18n)](#多國語系-i18n)
-8. [效能設計](#效能設計)
-9. [已知限制](#已知限制)
+A Chrome Extension that displays real-time particle effect animations when users type in any text input field on any webpage. It offers 12 visual styles to switch between, supports multiple languages (English / Traditional Chinese / Simplified Chinese / Japanese / Korean / Spanish), and all settings are configured through a Popup panel with instant effect.
 
 ---
 
-## 功能總覽
+## Table of Contents
 
-| 功能 | 說明 |
+1. [Feature Overview](#feature-overview)
+2. [Installation & Testing](#installation--testing)
+3. [File Structure](#file-structure)
+4. [Architecture Design](#architecture-design)
+   - [Overall Data Flow](#overall-data-flow)
+   - [Rendering Layer: Full-Screen Canvas Overlay](#rendering-layer-full-screen-canvas-overlay)
+   - [Caret Position Detection](#caret-position-detection)
+   - [Particle Engine: Object Pool Pattern](#particle-engine-object-pool-pattern)
+   - [Event Listening Strategy](#event-listening-strategy)
+   - [Settings Synchronization Mechanism](#settings-synchronization-mechanism)
+5. [Implementation & Algorithms of the Twelve Effects](#implementation--algorithms-of-the-twelve-effects)
+   - [Effect 1: 💥 Burst](#effect-1--burst)
+   - [Effect 2: 🔤 Text Echo](#effect-2--text-echo)
+   - [Effect 3: 💫 Vortex](#effect-3--vortex)
+   - [Effect 4: ⭐ Sparkle](#effect-4--sparkle)
+   - [Effect 5: ✨ Firefly](#effect-5--firefly)
+   - [Effect 6: 🎊 Confetti](#effect-6--confetti)
+   - [Effect 7: 🫧 Bubble](#effect-7--bubble)
+   - [Effect 8: ❄️ Frost](#effect-8--frost)
+   - [Effect 9: 🔥 Flame](#effect-9--flame)
+   - [Effect 10: 🌊 Ripple](#effect-10--ripple)
+   - [Effect 11: ⚡ Electric](#effect-11--electric)
+   - [Effect 12: 🌀 Diffuse](#effect-12--diffuse)
+6. [Effect Interface Specification & Extension Guide](#effect-interface-specification--extension-guide)
+7. [Internationalization (i18n)](#internationalization-i18n)
+8. [Performance Design](#performance-design)
+9. [Known Limitations](#known-limitations)
+
+---
+
+## Feature Overview
+
+| Feature | Description |
 |---|---|
-| 十二種粒子特效 | Burst / Echo / Vortex / Sparkle / Firefly / Confetti / Bubble / Frost / Flame / Ripple / Electric / Diffuse |
-| 即時切換 | 透過 Popup 面板選擇，無需重新載入頁面 |
-| 強度控制 | 滑桿 0.1 – 1.0 控制粒子數量倍率 |
-| 全域開關 | 一鍵啟用或停用所有特效 |
-| 多國語系 | 支援 English / 繁中 / 簡中 / 日 / 韓 / 西班牙文，自動偵測瀏覽器語系 |
-| 跨裝置同步 | 設定儲存於 `chrome.storage.sync` |
-| 支援所有輸入框 | `<input>` / `<textarea>` / `contenteditable` |
-| 隱私保護 | 自動跳過 `<input type="password">` |
-| IME 支援 | 組字期間抑制，確認輸入時觸發 |
-| iframe 支援 | `all_frames: true`，子框架中的輸入框同樣生效 |
-| 零干擾 | Canvas 層 `pointer-events: none`，不影響任何頁面互動 |
+| Twelve particle effects | Burst / Text Echo / Vortex / Sparkle / Firefly / Confetti / Bubble / Frost / Flame / Ripple / Electric / Diffuse |
+| Real-time switching | Select via Popup panel, no page reload required |
+| Intensity control | Slider 0.1 – 1.0 to control particle count multiplier |
+| Global toggle | One-click enable or disable all effects |
+| Multi-language support | Supports English / Traditional Chinese / Simplified Chinese / Japanese / Korean / Spanish, auto-detects browser locale |
+| Cross-device sync | Settings stored in `chrome.storage.sync` |
+| Supports all input fields | `<input>` / `<textarea>` / `contenteditable` |
+| Privacy protection | Automatically skips `<input type="password">` |
+| IME support | Suppressed during composition, triggered on input confirmation |
+| iframe support | `all_frames: true`, input fields within child frames also work |
+| Zero interference | Canvas layer uses `pointer-events: none`, does not affect any page interaction |
 
 ---
 
-## 安裝與測試方式
+## Installation & Testing
 
-### 方式一：開發者模式載入（推薦測試方式）
+### Method 1: Load in Developer Mode (Recommended for Testing)
 
-1. 開啟 Chrome，在網址列輸入 `chrome://extensions/`
-2. 開啟右上角的「**開發人員模式**」（Developer mode）
-3. 點擊左上角「**載入未封裝項目**」（Load unpacked）
-4. 選擇 `typing-particles/` **根目錄**（包含 `manifest.json` 的那層）
-5. 擴充功能列表中出現「Typing Particles — 打字粒子特效」即代表載入成功
-6. 開啟任意網頁（如 Google 搜尋、GitHub、Gmail），在輸入框打字即可看到粒子特效
-7. 點擊瀏覽器右上角的擴充功能圖示，開啟 Popup 面板切換特效與強度
+1. Open Chrome, enter `chrome://extensions/` in the address bar
+2. Enable "**Developer mode**" in the top-right corner
+3. Click "**Load unpacked**" in the top-left corner
+4. Select the `typing-particles/` **root directory** (the folder containing `manifest.json`)
+5. The extension appearing as "Typing Particles" in the extensions list confirms successful loading
+6. Open any webpage (e.g., Google Search, GitHub, Gmail), type in an input field to see the particle effects
+7. Click the extension icon in the top-right of the browser to open the Popup panel for switching effects and adjusting intensity
 
-### 方式二：使用原型頁面（僅供快速視覺驗證）
+### Method 2: Use the Prototype Page (For Quick Visual Verification Only)
 
-1. 在瀏覽器中開啟 `typing-particles/prototype/index.html`
-2. 頁面內建了 text input、textarea、contenteditable、password 四種輸入框
-3. 頂部控制面板可切換特效、調整強度、查看活躍粒子數
-4. 此原型在本機直接執行，不依賴 Chrome Extension API
+1. Open `typing-particles/prototype/index.html` in a browser
+2. The page includes four built-in input types: text input, textarea, contenteditable, and password
+3. The top control panel allows switching effects, adjusting intensity, and viewing active particle count
+4. This prototype runs locally and does not depend on the Chrome Extension API
 
-### 測試檢核清單
+### Testing Checklist
 
-- [ ] 在 `<input type="text">` 打字，粒子出現在游標附近
-- [ ] 在 `<textarea>` 多行文字打字，粒子跟隨游標換行
-- [ ] 在 `contenteditable` 區域打字，粒子正常顯示
-- [ ] 在 `<input type="password">` 打字，**不出現**粒子（隱私保護）
-- [ ] 透過 Popup 切換十二種特效，效果即時變更
-- [ ] 調整強度滑桿，粒子數量隨之增減
-- [ ] 關閉特效開關，粒子立即停止並消失
-- [ ] 快速連續打字時無卡頓（Performance 面板確認無掉幀）
-- [ ] 在含有 iframe 的頁面中（如 CodePen），iframe 內的輸入框也有特效
-- [ ] 使用注音/拼音等 IME 輸入法：組字過程無粒子，按下 Enter 確認後觸發
+- [ ] Type in `<input type="text">`, particles appear near the caret
+- [ ] Type in `<textarea>` with multiline text, particles follow the caret across line breaks
+- [ ] Type in a `contenteditable` area, particles display correctly
+- [ ] Type in `<input type="password">`, particles do **not** appear (privacy protection)
+- [ ] Switch between the twelve effects via Popup, effects change instantly
+- [ ] Adjust the intensity slider, particle count changes accordingly
+- [ ] Turn off the effect toggle, particles stop immediately and disappear
+- [ ] No stuttering during rapid typing (confirm no dropped frames in the Performance panel)
+- [ ] On pages with iframes (e.g., CodePen), input fields within iframes also show effects
+- [ ] Using IME input methods such as Zhuyin/Pinyin: no particles during composition, triggered after pressing Enter to confirm
 
 ---
 
-## 檔案結構
+## File Structure
 
 ```
 typing-particles/
-├── manifest.json                # Manifest V3 設定
-├── _locales/                    # 多國語系翻譯檔
-│   ├── en/messages.json         # English（預設）
-│   ├── zh_TW/messages.json      # 繁體中文
-│   ├── zh_CN/messages.json      # 简体中文
-│   ├── ja/messages.json         # 日本語
-│   ├── ko/messages.json         # 한국어
-│   └── es/messages.json         # Español
+├── manifest.json                # Manifest V3 configuration
+├── _locales/                    # Multi-language translation files
+│   ├── en/messages.json         # English (default)
+│   ├── zh_TW/messages.json      # Traditional Chinese
+│   ├── zh_CN/messages.json      # Simplified Chinese
+│   ├── ja/messages.json         # Japanese
+│   ├── ko/messages.json         # Korean
+│   └── es/messages.json         # Spanish
 ├── icons/
 │   ├── icon16.png
 │   ├── icon32.png
 │   ├── icon48.png
 │   └── icon128.png
 ├── popup/
-│   ├── popup.html               # 設定面板 UI（data-i18n 屬性標記翻譯點）
-│   ├── popup.css                # 設定面板樣式（暗色主題，4×3 grid）
-│   └── popup.js                 # 設定讀寫邏輯 + i18n 初始化
+│   ├── popup.html               # Settings panel UI (translation points marked with data-i18n attributes)
+│   ├── popup.css                # Settings panel styles (dark theme, 4×3 grid)
+│   └── popup.js                 # Settings read/write logic + i18n initialization
 ├── content/
-│   ├── content.js               # 入口：事件監聽、輸入偵測、context 組裝
-│   ├── caret-detector.js        # 游標像素位置偵測（mirror div + Selection API）
-│   ├── canvas-manager.js        # Canvas 覆蓋層生命週期（Shadow DOM 包裹）
-│   ├── particle-engine.js       # 粒子物件池 + requestAnimationFrame 動畫迴圈
-│   ├── settings-bridge.js       # chrome.storage.onChanged 監聽橋接
+│   ├── content.js               # Entry point: event listeners, input detection, context assembly
+│   ├── caret-detector.js        # Caret pixel position detection (mirror div + Selection API)
+│   ├── canvas-manager.js        # Canvas overlay lifecycle (wrapped in Shadow DOM)
+│   ├── particle-engine.js       # Particle object pool + requestAnimationFrame animation loop
+│   ├── settings-bridge.js       # chrome.storage.onChanged listener bridge
 │   └── effects/
-│       ├── burst.js             # 💥 粒子爆發
-│       ├── echo.js              # 🔤 文字迴響
-│       ├── vortex.js            # 💫 漩渦吸入
-│       ├── sparkle.js           # ⭐ 星光閃爍
-│       ├── firefly.js           # ✨ 螢光漫舞
-│       ├── confetti.js          # 🎊 紙花飄落
-│       ├── bubble.js            # 🫧 泡泡飄浮
-│       ├── frost.js             # ❄️ 冰霜結晶
-│       ├── flame.js             # 🔥 火焰上升
-│       ├── ripple.js            # 🌊 水波漣漪
-│       ├── electric.js          # ⚡ 電流脈衝
-│       └── diffuse.js           # 🌀 擴散漸層
+│       ├── burst.js             # 💥 Burst
+│       ├── echo.js              # 🔤 Text Echo
+│       ├── vortex.js            # 💫 Vortex
+│       ├── sparkle.js           # ⭐ Sparkle
+│       ├── firefly.js           # ✨ Firefly
+│       ├── confetti.js          # 🎊 Confetti
+│       ├── bubble.js            # 🫧 Bubble
+│       ├── frost.js             # ❄️ Frost
+│       ├── flame.js             # 🔥 Flame
+│       ├── ripple.js            # 🌊 Ripple
+│       ├── electric.js          # ⚡ Electric
+│       └── diffuse.js           # 🌀 Diffuse
 ├── shared/
-│   └── constants.js             # 預設值、特效註冊表
-└── prototype/                   # 獨立原型（不隨 Extension 發布）
+│   └── constants.js             # Default values, effect registry
+└── prototype/                   # Standalone prototype (not shipped with the Extension)
     ├── index.html
     ├── prototype.js
     └── prototype.css
@@ -138,52 +138,52 @@ typing-particles/
 
 ---
 
-## 架構設計
+## Architecture Design
 
-### 整體資料流
+### Overall Data Flow
 
 ```
-使用者按鍵
+User presses a key
     │
     ▼
-document 'input' 事件（capture phase）
+document 'input' event (capture phase)
     │
-    ├─ 節流：16ms 內最多一次
-    ├─ IME 過濾：composing 期間跳過
+    ├─ Throttle: at most once per 16ms
+    ├─ IME filter: skip during composition
     │
     ▼
 CaretDetector.detect(target)
     │
-    ├─ <input>/<textarea> → Mirror Div 技術
+    ├─ <input>/<textarea> → Mirror Div technique
     ├─ contenteditable    → Selection/Range API
-    ├─ password           → 回傳 null（跳過）
+    ├─ password           → return null (skip)
     │
     ▼
-取得游標 viewport 座標 { x, y }
+Obtain caret viewport coordinates { x, y }
     │
     ▼
-組裝 context { char, fontFamily, fontSize, fontWeight }
+Assemble context { char, fontFamily, fontSize, fontWeight }
     │
     ▼
 ParticleEngine.spawn(x, y, intensity, context)
     │
-    ├─ 呼叫當前特效的 spawn() → 從物件池 acquire 粒子
-    ├─ 啟動 requestAnimationFrame 迴圈（如未運行）
+    ├─ Call current effect's spawn() → acquire particle from object pool
+    ├─ Start requestAnimationFrame loop (if not already running)
     │
     ▼
-每幀迴圈：
+Per-frame loop:
     ├─ CanvasManager.clear()
-    ├─ 遍歷所有活躍粒子：
-    │   ├─ effect.update(p)  → 更新位置、速度、透明度
+    ├─ Iterate all active particles:
+    │   ├─ effect.update(p)  → update position, velocity, opacity
     │   ├─ p.life++
-    │   ├─ 若 life >= maxLife → 回收至物件池
-    │   └─ effect.render(ctx, p) → 繪製到 Canvas
-    └─ 粒子歸零 → 停止迴圈 + 隱藏 Canvas
+    │   ├─ If life >= maxLife → recycle to object pool
+    │   └─ effect.render(ctx, p) → draw to Canvas
+    └─ Particles reach zero → stop loop + hide Canvas
 ```
 
-### 渲染層：全螢幕 Canvas 覆蓋層
+### Rendering Layer: Full-Screen Canvas Overlay
 
-**檔案**：`content/canvas-manager.js`
+**File**: `content/canvas-manager.js`
 
 ```
 ┌─────────────────────────────────────┐
@@ -202,683 +202,684 @@ ParticleEngine.spawn(x, y, intensity, context)
 │  │  └───────────────────────┘  │   │
 │  └──────────────────────────────┘   │
 │                                     │
-│  [頁面原本的 DOM]                    │
+│  [Original page DOM]                │
 └─────────────────────────────────────┘
 ```
 
-核心設計要點：
+Key design points:
 
-- **Closed Shadow DOM**：Canvas 被包裹在 closed shadow root 中，完全隔離，不受頁面 CSS（如 `canvas { display: none !important }`）干擾
-- **`pointer-events: none`**：所有滑鼠事件穿透到底層頁面，使用者無感覺
-- **`z-index: 2147483647`**：32-bit integer 最大值，確保粒子永遠在最上層
-- **`display: none`**：無粒子時完全隱藏，省去瀏覽器合成（compositing）成本
-- **`devicePixelRatio` 支援**：Canvas 物理像素設為 `viewport × dpr`，CSS 尺寸維持 viewport 大小，搭配 `ctx.setTransform(dpr, 0, 0, dpr, 0, 0)` 確保 Retina 螢幕下粒子清晰不模糊
-- **resize 響應**：監聽 `window.resize` 事件，即時調整 Canvas 尺寸
+- **Closed Shadow DOM**: The Canvas is wrapped in a closed shadow root, fully isolated and unaffected by page CSS (e.g., `canvas { display: none !important }`)
+- **`pointer-events: none`**: All mouse events pass through to the underlying page, completely transparent to the user
+- **`z-index: 2147483647`**: Maximum 32-bit integer value, ensuring particles are always on the topmost layer
+- **`display: none`**: Fully hidden when no particles are present, eliminating browser compositing cost
+- **`devicePixelRatio` support**: Canvas physical pixels are set to `viewport × dpr`, CSS dimensions remain at viewport size, combined with `ctx.setTransform(dpr, 0, 0, dpr, 0, 0)` to ensure particles are crisp on Retina displays
+- **resize response**: Listens for `window.resize` events to adjust Canvas dimensions in real time
 
-### 游標位置偵測
+### Caret Position Detection
 
-**檔案**：`content/caret-detector.js`
+**File**: `content/caret-detector.js`
 
-這是整個專案中**最複雜的部分**，因為瀏覽器沒有提供直接取得游標像素座標的 API。針對不同輸入元素類型，使用不同策略：
+This is the **most complex part** of the entire project, because browsers do not provide a direct API to obtain the caret's pixel coordinates. Different strategies are used for different input element types:
 
-#### 策略一：Mirror Div 技術（用於 `<input>` 和 `<textarea>`）
+#### Strategy 1: Mirror Div Technique (for `<input>` and `<textarea>`)
 
-`<input>` 和 `<textarea>` 的游標位置無法透過 Selection API 取得，因此使用「鏡像 div」方法：
-
-```
-原始 <input>:  "Hello World|"   （| = 游標位置）
-                                  ↑ 我們要知道這裡的像素座標
-
-做法：
-1. 建立一個隱藏的 <div>（mirror div），放在 DOM 中但 visibility: hidden
-2. 將原始元素的 23 個排版相關 CSS 屬性複製到 mirror div：
-   - 字型：fontFamily, fontSize, fontWeight, fontStyle, letterSpacing, ...
-   - 間距：padding（上下左右）, border（上下左右）
-   - 排版：boxSizing, direction, textAlign, whiteSpace, wordWrap, tabSize
-3. 將 mirror div 的寬高設為與原始元素相同
-4. 將游標前的文字放入 TextNode，游標後第一個字元放入 <span>（標記元素）
-5. 對 <span> 呼叫 getBoundingClientRect() 取得其位置
-6. 將 mirror div 座標系轉換回原始元素的 viewport 座標
-7. 扣除原始元素的 scrollTop / scrollLeft（處理內容捲動）
-```
+The caret position in `<input>` and `<textarea>` cannot be obtained via the Selection API, so a "mirror div" approach is used:
 
 ```
-Mirror Div 結構：
+Original <input>:  "Hello World|"   (| = caret position)
+                                      ↑ We need the pixel coordinates here
+
+Approach:
+1. Create a hidden <div> (mirror div), placed in the DOM but with visibility: hidden
+2. Copy 23 layout-related CSS properties from the original element to the mirror div:
+   - Font: fontFamily, fontSize, fontWeight, fontStyle, letterSpacing, ...
+   - Spacing: padding (top/bottom/left/right), border (top/bottom/left/right)
+   - Layout: boxSizing, direction, textAlign, whiteSpace, wordWrap, tabSize
+3. Set the mirror div's width and height to match the original element
+4. Place text before the caret into a TextNode, and the first character after the caret into a <span> (marker element)
+5. Call getBoundingClientRect() on the <span> to get its position
+6. Convert the mirror div's coordinate system back to the original element's viewport coordinates
+7. Subtract the original element's scrollTop / scrollLeft (to handle content scrolling)
+```
+
+```
+Mirror Div structure:
 ┌────────────────────────────────┐
-│ TextNode("Hello World")       │
-│ <span>下一個字元</span>  ← getBoundingClientRect()
-│ TextNode(剩餘文字)            │
+│ TextNode("Hello World")        │
+│ <span>next character</span>  ← getBoundingClientRect()
+│ TextNode(remaining text)       │
 └────────────────────────────────┘
 ```
 
-#### 策略二：Selection/Range API（用於 `contenteditable`）
+#### Strategy 2: Selection/Range API (for `contenteditable`)
 
-`contenteditable` 元素的游標可直接透過瀏覽器原生 API 取得：
+The caret in `contenteditable` elements can be obtained directly via native browser APIs:
 
 ```javascript
 const sel = window.getSelection();
 const range = sel.getRangeAt(0).cloneRange();
-range.collapse(true);  // 折疊到游標位置
-const rect = range.getBoundingClientRect();  // 直接取得像素座標
+range.collapse(true);  // Collapse to caret position
+const rect = range.getBoundingClientRect();  // Directly get pixel coordinates
 ```
 
-邊界情況處理：
-- **空的 contenteditable**：`getBoundingClientRect()` 會回傳全零。此時插入一個零寬空格 `\u200B` 的暫存 `<span>`，取得座標後立即移除，並還原 Selection
+Edge case handling:
+- **Empty contenteditable**: `getBoundingClientRect()` returns all zeros. In this case, a temporary `<span>` containing a zero-width space `\u200B` is inserted, the coordinates are obtained, then the span is immediately removed and the Selection is restored
 
-#### 策略三：跳過密碼欄位
+#### Strategy 3: Skip Password Fields
 
-偵測到 `<input type="password">` 時直接回傳 `null`，不產生任何粒子，避免洩漏密碼長度或輸入節奏等資訊。
+When `<input type="password">` is detected, `null` is returned immediately, producing no particles, to avoid leaking information such as password length or typing rhythm.
 
-### 粒子引擎：物件池模式
+### Particle Engine: Object Pool Pattern
 
-**檔案**：`content/particle-engine.js`
+**File**: `content/particle-engine.js`
 
-#### 為什麼用物件池？
+#### Why Use an Object Pool?
 
-每次按鍵會產生 2-18 個粒子物件。若使用 `new` 建立 + 自然 GC 回收，快速打字時會觸發頻繁的 Minor GC，造成微卡頓。物件池在初始化時一次性分配所有物件，之後只做狀態重設，**整個生命週期零記憶體分配、零 GC 壓力**。
+Each keystroke generates 2-18 particle objects. If `new` is used for creation and natural GC for cleanup, rapid typing triggers frequent Minor GC pauses, causing micro-stuttering. The object pool allocates all objects at initialization, and only resets state afterwards — **zero memory allocation and zero GC pressure throughout the entire lifecycle**.
 
-#### 物件池運作方式
+#### How the Object Pool Works
 
 ```
-初始化：預分配 300 個粒子物件
+Initialization: pre-allocate 300 particle objects
 ┌─────────────────────────────────────────────┐
-│ [idle] [idle] [idle] ... [idle]  ← 300 個  │
+│ [idle] [idle] [idle] ... [idle]  ← 300      │
 └─────────────────────────────────────────────┘
 
-按鍵產生粒子：acquire() 找到第一個 idle 物件，標記 active
+Keystroke spawns particles: acquire() finds the first idle object, marks it active
 ┌─────────────────────────────────────────────┐
 │ [ACTIVE] [ACTIVE] [idle] ... [idle]         │
 └─────────────────────────────────────────────┘
 
-粒子生命結束：release() 標記回 idle（不刪除不 new）
+Particle lifetime ends: release() marks it back to idle (no deletion, no new)
 ┌─────────────────────────────────────────────┐
 │ [idle] [ACTIVE] [idle] ... [idle]           │
 └─────────────────────────────────────────────┘
 ```
 
-#### 動畫迴圈的自動啟停
+#### Automatic Start/Stop of the Animation Loop
 
 ```
-spawn() 被呼叫
+spawn() is called
     │
-    ├─ activeCount > 0 且 rafId === null
-    │       → 啟動 requestAnimationFrame 迴圈
+    ├─ activeCount > 0 and rafId === null
+    │       → Start requestAnimationFrame loop
     │
     ▼
-_tick() 每幀執行：
+_tick() executes each frame:
     ├─ clear Canvas
-    ├─ 遍歷 pool → update + render 每個 active 粒子
+    ├─ Iterate pool → update + render each active particle
     ├─ life >= maxLife → release
     │
-    └─ activeCount === 0？
-            ├─ 是 → cancelAnimationFrame + 隱藏 Canvas（省電）
-            └─ 否 → requestAnimationFrame(_tick) 繼續
+    └─ activeCount === 0?
+            ├─ Yes → cancelAnimationFrame + hide Canvas (save power)
+            └─ No  → requestAnimationFrame(_tick) continue
 ```
 
-#### 粒子物件結構
+#### Particle Object Structure
 
-每個粒子物件包含以下欄位，所有特效共用：
+Each particle object contains the following fields, shared across all effects:
 
-| 欄位 | 型別 | 說明 |
+| Field | Type | Description |
 |---|---|---|
-| `active` | boolean | 是否正在使用中 |
-| `x`, `y` | number | viewport 座標 |
-| `vx`, `vy` | number | 速度向量（px/frame） |
-| `size` | number | 基礎尺寸（px） |
-| `life` | number | 已存活幀數 |
-| `maxLife` | number | 最大壽命（幀） |
-| `color` | string | CSS 顏色值 |
-| `alpha` | number | 透明度 0-1 |
-| `rotation` | number | 旋轉角度（radians） |
-| `rotationSpeed` | number | 每幀旋轉量 |
-| `scale` | number | 縮放倍率 |
-| `custom` | object | 特效專用資料（每次 acquire 時重設為 `{}`） |
+| `active` | boolean | Whether currently in use |
+| `x`, `y` | number | Viewport coordinates |
+| `vx`, `vy` | number | Velocity vector (px/frame) |
+| `size` | number | Base size (px) |
+| `life` | number | Frames survived |
+| `maxLife` | number | Maximum lifetime (frames) |
+| `color` | string | CSS color value |
+| `alpha` | number | Opacity 0-1 |
+| `rotation` | number | Rotation angle (radians) |
+| `rotationSpeed` | number | Rotation per frame |
+| `scale` | number | Scale multiplier |
+| `custom` | object | Effect-specific data (reset to `{}` on each acquire) |
 
-### 事件監聽策略
+### Event Listening Strategy
 
-**檔案**：`content/content.js`
+**File**: `content/content.js`
 
 ```javascript
 document.addEventListener('input', _onInput, true);  // capture phase
 ```
 
-選擇 `input` 事件而非 `keydown` 的理由：
+Reasons for choosing the `input` event over `keydown`:
 
-| 比較 | `keydown` | `input` |
+| Comparison | `keydown` | `input` |
 |---|---|---|
-| Shift/Ctrl 等修飾鍵 | 會觸發 | 不會觸發 |
-| 貼上文字 | 不觸發 | 觸發 |
-| 自動完成選取 | 不觸發 | 觸發 |
-| 語音輸入 | 不觸發 | 觸發 |
-| IME 組字確認 | 需額外處理 | 自然觸發 |
-| `e.data` 取得輸入字元 | 無（需查 keyCode） | 有 |
+| Modifier keys like Shift/Ctrl | Fires | Does not fire |
+| Paste text | Does not fire | Fires |
+| Autocomplete selection | Does not fire | Fires |
+| Voice input | Does not fire | Fires |
+| IME composition confirmation | Requires extra handling | Fires naturally |
+| `e.data` to get input character | Not available (must check keyCode) | Available |
 
-使用 **capture phase**（第三參數 `true`）確保即使頁面 JavaScript 在 bubble phase 呼叫 `e.stopPropagation()`，我們依然能攔截到事件。
+Using **capture phase** (third argument `true`) ensures that even if page JavaScript calls `e.stopPropagation()` in the bubble phase, we can still intercept the event.
 
-**節流**：每 16ms 最多處理一次，對應 60fps 的一幀。超出的事件直接丟棄，避免快速打字時堆積過多粒子。
+**Throttle**: At most one event processed per 16ms, corresponding to one frame at 60fps. Excess events are discarded to prevent particle accumulation during rapid typing.
 
-**IME 處理**：
+**IME Handling**:
 
 ```
-compositionstart → _composing = true（開始組字，抑制粒子）
+compositionstart → _composing = true (composition begins, suppress particles)
     |
-使用者在 IME 中選字...（input 事件被 _composing 擋下）
+User selects characters in IME... (input events blocked by _composing)
     |
-compositionend → _composing = false → 立即觸發一次 _onInput()
+compositionend → _composing = false → immediately trigger one _onInput()
 ```
 
-**Context 組裝**：
+**Context Assembly**:
 
-對於「擴散漸層」和「文字迴響」等需要知道具體字元的特效，`content.js` 在每次 input 事件中組裝 context：
+For effects like "Diffuse" and "Text Echo" that need to know the specific character, `content.js` assembles the context on each input event:
 
 ```javascript
 context = {
-  char: e.data.slice(-1),                    // 最後輸入的字元
-  fontFamily: computedStyle.fontFamily,       // 輸入框的字型
-  fontSize: parseFloat(computedStyle.fontSize), // 字體大小（px）
-  fontWeight: computedStyle.fontWeight         // 字重
+  char: e.data.slice(-1),                    // Last typed character
+  fontFamily: computedStyle.fontFamily,       // Input field's font
+  fontSize: parseFloat(computedStyle.fontSize), // Font size (px)
+  fontWeight: computedStyle.fontWeight         // Font weight
 };
 ```
 
-### 設定同步機制
+### Settings Synchronization Mechanism
 
 ```
-Popup 面板                    Content Script
-┌──────────┐                  ┌──────────────┐
-│ 使用者    │  chrome.storage  │ SettingsBridge│
-│ 切換特效  │ ──── .sync.set ──→ .onChanged   │
-│ 調整強度  │                  │  listener     │
-│ 開/關     │                  │       │       │
-└──────────┘                  │       ▼       │
-                              │  套用新設定    │
-                              │  切換 effect   │
-                              └──────────────┘
+Popup Panel                      Content Script
+┌──────────┐                     ┌──────────────┐
+│ User      │  chrome.storage    │ SettingsBridge│
+│ switches  │ ──── .sync.set ──→ │ .onChanged   │
+│ effect    │                    │  listener     │
+│ adjusts   │                    │       │       │
+│ intensity │                    │       ▼       │
+│ on/off    │                    │  Apply new    │
+└──────────┘                     │  settings     │
+                                 │  switch effect│
+                                 └──────────────┘
 ```
 
-- **儲存**：`chrome.storage.sync`（跨裝置同步，最大 100KB）
-- **即時生效**：Content Script 透過 `chrome.storage.onChanged` 監聽，收到變更立即套用，無需重載頁面
-- **無「儲存」按鈕**：Popup 中每個操作直接寫入 storage
+- **Storage**: `chrome.storage.sync` (cross-device sync, 100KB max)
+- **Instant effect**: Content Script listens via `chrome.storage.onChanged`, applies changes immediately upon receiving them, no page reload needed
+- **No "Save" button**: Every action in the Popup writes directly to storage
 
 ---
 
-## 十二種特效的實作方式與演算法
+## Implementation & Algorithms of the Twelve Effects
 
-### 特效 1：💥 粒子爆發 (Burst)
+### Effect 1: 💥 Burst
 
-**檔案**：`content/effects/burst.js`
+**File**: `content/effects/burst.js`
 
-**視覺效果**：按鍵時從游標位置向四面八方射出彩色圓形粒子，帶重力和摩擦力，像迷你煙火。
+**Visual effect**: On each keystroke, colorful circular particles shoot outward in all directions from the caret position, with gravity and friction, resembling a mini firework.
 
-**演算法**：
+**Algorithm**:
 
 ```
-spawn（每次按鍵觸發）:
-  粒子數量 = floor((6 + random()*10) × intensity)  // 強度 0.5 時約 6-8 個
-  對每個粒子:
-    角度 = random() × 2π                    // 360° 隨機方向
-    速度 = 2 + random() × 5                 // 2-7 px/frame
-    vx = cos(角度) × 速度
-    vy = sin(角度) × 速度
-    大小 = 3 + random() × 5 px
-    壽命 = 25-50 幀（約 0.4-0.8 秒）
-    顏色 = 隨機選取 [金 #FFD700, 橙 #FF8C00, 白 #FFFFFF, 淺藍 #87CEEB]
+spawn (triggered on each keystroke):
+  particle count = floor((6 + random()*10) × intensity)  // ~6-8 at intensity 0.5
+  For each particle:
+    angle = random() × 2π                    // Random direction across 360°
+    speed = 2 + random() × 5                 // 2-7 px/frame
+    vx = cos(angle) × speed
+    vy = sin(angle) × speed
+    size = 3 + random() × 5 px
+    lifetime = 25-50 frames (~0.4-0.8 seconds)
+    color = random pick from [gold #FFD700, orange #FF8C00, white #FFFFFF, light blue #87CEEB]
 
-update（每幀）:
+update (each frame):
     x += vx
     y += vy
-    vy += 0.1                                // 重力加速度（向下）
-    vx *= 0.98                               // 水平摩擦力
-    vy *= 0.98                               // 垂直摩擦力
-    alpha = 1 - (life / maxLife)             // 線性淡出
+    vy += 0.1                                // Gravity acceleration (downward)
+    vx *= 0.98                               // Horizontal friction
+    vy *= 0.98                               // Vertical friction
+    alpha = 1 - (life / maxLife)             // Linear fade-out
 
 render:
-    ctx.arc(x, y, size) 填充圓形
+    ctx.arc(x, y, size) filled circle
 ```
 
-**物理模型**：簡化的 2D 拋體運動。重力常數 0.1 使粒子呈拋物線軌跡，摩擦係數 0.98 讓粒子不會飛太遠。
+**Physics model**: Simplified 2D projectile motion. Gravity constant of 0.1 gives particles a parabolic trajectory, friction coefficient of 0.98 prevents particles from flying too far.
 
-### 特效 2：🔤 文字迴響 (Echo)
+### Effect 2: 🔤 Text Echo
 
-**檔案**：`content/effects/echo.js`
+**File**: `content/effects/echo.js`
 
-**視覺效果**：輸入一個字後，出現 2-3 層**相同字形的放大輪廓**，像漣漪一樣一層層向外擴張並淡出。
+**Visual effect**: After typing a character, 2-3 layers of **enlarged outlines of the same glyph** appear, expanding outward layer by layer like ripples and fading out.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  用 measureText 取得字元寬度 → 計算字元中心 = 游標x - 字寬/2
-  層數 layers = max(2, floor(3 × intensity))
-  顏色 = 隨機選取 [青, 紫, 金, 粉, 白]
+  Use measureText to get character width → calculate character center = caret x - charWidth/2
+  layers = max(2, floor(3 × intensity))
+  color = random pick from [cyan, purple, gold, pink, white]
 
-  對每一層 i = 0, 1, 2:
-    p.x, p.y = 字元中心
-    p.size = 原始 fontSize
-    p.custom.char = 輸入的字元
-    p.custom.fontFamily = 輸入框字型
-    p.custom.fontWeight = 輸入框字重
-    p.custom.startDelay = i × 5               // 第一層立即，每層間隔 5 幀
-    p.maxLife = 35-45 幀
+  For each layer i = 0, 1, 2:
+    p.x, p.y = character center
+    p.size = original fontSize
+    p.custom.char = typed character
+    p.custom.fontFamily = input field font
+    p.custom.fontWeight = input field font weight
+    p.custom.startDelay = i × 5               // First layer immediately, 5-frame interval between layers
+    p.maxLife = 35-45 frames
 
 update:
-    if life < startDelay → 不動（等待出場）
+    if life < startDelay → do nothing (waiting to appear)
 
     active = life - startDelay
     duration = maxLife - startDelay
     progress = active / duration
 
-    scale = 1.05 + progress × 1.5             // 1.05× → 2.55× 線性放大
+    scale = 1.05 + progress × 1.5             // 1.05× → 2.55× linear scale-up
 
     alpha:
-      progress < 0.1 → 快速淡入（0 → 0.7）
-      progress ≥ 0.1 → 0.7 × (1 - t²)        // 二次方淡出
+      progress < 0.1 → fast fade-in (0 → 0.7)
+      progress ≥ 0.1 → 0.7 × (1 - t²)        // Quadratic fade-out
 
 render:
     scaledSize = fontSize × scale
     ctx.font = "fontWeight scaledSizepx fontFamily"
 
-    第一層：fillText（低透明度 alpha×0.15）    // 柔和背景光暈
-    第二層：strokeText（完整透明度 alpha）      // 清晰字元輪廓
-    lineWidth = max(1, 2 - scale×0.4)          // 越大線越細，更優雅
+    First layer: fillText (low opacity alpha×0.15)     // Soft background glow
+    Second layer: strokeText (full opacity alpha)       // Clear character outline
+    lineWidth = max(1, 2 - scale×0.4)                  // Thinner lines at larger scale, more elegant
 ```
 
-**漣漪效果的關鍵**：`startDelay = i × 5` 讓三層字元依序出場。視覺上形成由內向外擴散的波紋。
+**Key to the ripple effect**: `startDelay = i × 5` makes the three character layers appear sequentially. Visually, this creates a wave pattern expanding outward from the center.
 
 ---
 
-### 特效 3：💫 漩渦吸入 (Vortex)
+### Effect 3: 💫 Vortex
 
-**檔案**：`content/effects/vortex.js`
+**File**: `content/effects/vortex.js`
 
-**視覺效果**：粒子從游標周圍生成，以螺旋軌跡旋轉收縮至中心，逐漸縮小消失，像小型黑洞吸入效果。
+**Visual effect**: Particles spawn around the caret, spiral inward along a contracting path to the center, gradually shrinking and disappearing, like a mini black hole absorption effect.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((6 + random()*8) × intensity)
-  對每個粒子:
-    初始角度 = random() × 2π
-    初始距離 = 20 + random() × 30 px（在游標周圍環形分佈）
-    位置 = 游標 + (cos(角度)×距離, sin(角度)×距離)
-    旋轉速度 = 0.15 + random() × 0.1 rad/frame
-    壽命 = 25-40 幀
-    顏色 = [紫 #C084FC, 淺紫 #A78BFA, 靛 #818CF8, 青 #67E8F9, 粉紫 #F0ABFC, 白]
+  particle count = floor((6 + random()*8) × intensity)
+  For each particle:
+    initial angle = random() × 2π
+    initial distance = 20 + random() × 30 px (ring distribution around caret)
+    position = caret + (cos(angle)×distance, sin(angle)×distance)
+    spin speed = 0.15 + random() × 0.1 rad/frame
+    lifetime = 25-40 frames
+    color = [purple #C084FC, light purple #A78BFA, indigo #818CF8, cyan #67E8F9, pink-purple #F0ABFC, white]
 
 update:
-    angle += spinSpeed                         // 持續旋轉
-    dist *= 0.955                              // 每幀軌道半徑縮小 4.5%
-    x = centerX + cos(angle) × dist            // 螺旋軌跡
+    angle += spinSpeed                         // Continuous rotation
+    dist *= 0.955                              // Orbit radius shrinks by 4.5% per frame
+    x = centerX + cos(angle) × dist            // Spiral trajectory
     y = centerY + sin(angle) × dist
-    scale = 1 - progress × 0.7                // 接近中心時縮小
-    alpha = 1 - progress²                      // 二次方淡出
+    scale = 1 - progress × 0.7                // Shrinks as it approaches center
+    alpha = 1 - progress²                      // Quadratic fade-out
 
 render:
-    外層：大半徑圓形，低透明度 → 光暈
-    內層：小半徑白色圓形 → 明亮核心
+    Outer layer: large radius circle, low opacity → glow
+    Inner layer: small radius white circle → bright core
 ```
 
 ---
 
-### 特效 4：⭐ 星光閃爍 (Sparkle)
+### Effect 4: ⭐ Sparkle
 
-**檔案**：`content/effects/sparkle.js`
+**File**: `content/effects/sparkle.js`
 
-**視覺效果**：在游標周圍出現四角星形粒子，帶旋轉，大小來回振盪產生閃爍感，緩緩上飄。
+**Visual effect**: Four-pointed star particles appear around the caret, rotating, with size oscillating back and forth to create a twinkling effect, slowly drifting upward.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((4 + random()*6) × intensity)
-  對每個粒子:
-    位置 = 游標 ± random()*40 px（隨機散佈在游標附近）
-    vy = -0.3 - random()*0.5                  // 微微上飄
-    大小 = 5-11 px
-    壽命 = 30-55 幀
-    旋轉速度 = random() × 0.15 rad/frame
-    phaseOffset = random() × 2π               // 閃爍相位（避免同步閃爍）
-    顏色 = [白 #FFFFFF, 淺黃 #FFFACD, 淺藍 #87CEEB]
+  particle count = floor((4 + random()*6) × intensity)
+  For each particle:
+    position = caret ± random()*40 px (randomly scattered near the caret)
+    vy = -0.3 - random()*0.5                  // Gentle upward drift
+    size = 5-11 px
+    lifetime = 30-55 frames
+    rotationSpeed = random() × 0.15 rad/frame
+    phaseOffset = random() × 2π               // Twinkle phase (prevents synchronized twinkling)
+    color = [white #FFFFFF, light yellow #FFFACD, light blue #87CEEB]
 
 update:
     x += vx, y += vy
     rotation += rotationSpeed
     progress = life / maxLife
-    scale = 0.5 + 0.5 × |sin(life × 0.3 + phaseOffset)|   // ← 閃爍的核心
+    scale = 0.5 + 0.5 × |sin(life × 0.3 + phaseOffset)|   // ← Core of the twinkling
     alpha = 1 - progress
 
 render:
-    四角星形 — 4 個外頂點 + 4 個內頂點交替連線
-    外頂點：距中心 size×scale，每隔 90°
-    內頂點：距中心 size×scale×0.3，在外頂點之間 45° 處
+    Four-pointed star — 4 outer vertices + 4 inner vertices connected alternately
+    Outer vertices: distance size×scale from center, every 90°
+    Inner vertices: distance size×scale×0.3 from center, at 45° between outer vertices
 ```
 
-**閃爍原理**：`scale` 使用正弦函數 `|sin(life × 0.3 + phaseOffset)|` 產生 0.5 到 1.0 之間的週期性縮放。`phaseOffset` 讓每個粒子的閃爍節奏不同，避免所有星星同時放大/縮小。
+**Twinkling mechanism**: `scale` uses a sine function `|sin(life × 0.3 + phaseOffset)|` to produce periodic scaling between 0.5 and 1.0. `phaseOffset` gives each particle a different twinkling rhythm, preventing all stars from enlarging/shrinking simultaneously.
 
-**四角星繪製**：8 個頂點的多邊形，外頂點在 0°/90°/180°/270°，內頂點在 45°/135°/225°/315°，外半徑是內半徑的 3.3 倍（`0.3` 比例），形成尖銳的星形。
+**Four-pointed star rendering**: An 8-vertex polygon with outer vertices at 0°/90°/180°/270° and inner vertices at 45°/135°/225°/315°. The outer radius is 3.3× the inner radius (`0.3` ratio), creating a sharp star shape.
 
 ---
 
-### 特效 5：✨ 螢光漫舞 (Firefly)
+### Effect 5: ✨ Firefly
 
-**檔案**：`content/effects/firefly.js`
+**File**: `content/effects/firefly.js`
 
-**視覺效果**：黃綠色小光點從游標緩慢漂出，帶有隨機蜿蜒軌跡和明滅閃爍效果，像夜晚的螢火蟲。
+**Visual effect**: Yellow-green light dots slowly drift out from the caret, following random wandering paths with flickering brightness, like fireflies at night.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((4 + random()*6) × intensity)
-  對每個粒子:
-    位置 = 游標 ± random()*16 px（散佈）
-    vy = 微微向上漂移（-0.3 bias）
-    速度 = 0.3 + random() × 0.8（慢速）
-    大小 = 2-4 px
-    壽命 = 40-70 幀（長壽命，悠閒節奏）
-    顏色 = [金黃 #FBBF24, 黃綠 #A3E635, 淺綠 #BEF264, 淺金 #FDE68A, 嫩綠 #D9F99D]
+  particle count = floor((4 + random()*6) × intensity)
+  For each particle:
+    position = caret ± random()*16 px (scattered)
+    vy = slight upward drift (-0.3 bias)
+    speed = 0.3 + random() × 0.8 (slow)
+    size = 2-4 px
+    lifetime = 40-70 frames (long lifetime, leisurely pace)
+    color = [golden yellow #FBBF24, yellow-green #A3E635, light green #BEF264, light gold #FDE68A, tender green #D9F99D]
     flickerSpeed = 0.15 + random() × 0.15
-    phase = random() × 2π（各自閃爍節奏不同）
+    phase = random() × 2π (each has its own flicker rhythm)
 
 update:
-    // 蜿蜒漫遊
+    // Wandering drift
     vx += sin(life × 0.07 + wanderPhase) × 0.04
     vy += cos(life × 0.09 + wanderPhase) × 0.03
     vx *= 0.97, vy *= 0.97
 
-    // 明滅閃爍（sine 波控制）
+    // Brightness flickering (sine wave controlled)
     flicker = 0.5 + 0.5 × sin(life × flickerSpeed + phase)
 
-    // 漸入漸出包絡線
+    // Fade-in/fade-out envelope
     envelope:
-      progress < 0.15 → 淡入
-      0.15 - 0.7     → 全亮
-      > 0.7          → 淡出
+      progress < 0.15 → fade in
+      0.15 - 0.7     → full brightness
+      > 0.7          → fade out
     alpha = flicker × envelope
 
 render:
-    外層：radial gradient 光暈（半徑 3 倍，低透明度）
-    內層：白色小圓點（半徑 0.6 倍，高透明度）
+    Outer layer: radial gradient glow (3× radius, low opacity)
+    Inner layer: white dot (0.6× radius, high opacity)
 ```
 
-**閃爍的關鍵**：`flicker × envelope` 雙重控制。`flicker`（sine 波）產生持續的明暗交替，`envelope` 控制整體生命週期的漸入漸出，兩者相乘產生自然的螢火蟲發光效果。
+**Key to flickering**: `flicker × envelope` dual control. `flicker` (sine wave) produces continuous brightness oscillation, `envelope` controls the overall lifecycle fade-in/fade-out. Their product creates a natural firefly glow effect.
 
 ---
 
-### 特效 6：🎊 紙花飄落 (Confetti)
+### Effect 6: 🎊 Confetti
 
-**檔案**：`content/effects/confetti.js`
+**File**: `content/effects/confetti.js`
 
-**視覺效果**：彩色長方形紙片向上噴射後受重力飄落，帶 3D 翻轉旋轉效果。
+**Visual effect**: Colorful rectangular paper pieces shoot upward then fall under gravity, with a 3D tumbling rotation effect.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((5 + random()*8) × intensity)
-  對每個粒子:
-    vx = (random()-0.5) × 5                    // 左右隨機散射
-    vy = -3 - random() × 4                     // 強力向上噴射
-    寬度 = 3 + random() × 4 px
-    高度 = 寬度 × (1.5 + random())              // 長方形
-    壽命 = 35-55 幀（飄得比較久）
-    顏色 = 8 色高飽和度調色盤隨機選取
+  particle count = floor((5 + random()*8) × intensity)
+  For each particle:
+    vx = (random()-0.5) × 5                    // Random left/right scatter
+    vy = -3 - random() × 4                     // Strong upward launch
+    width = 3 + random() × 4 px
+    height = width × (1.5 + random())           // Rectangular shape
+    lifetime = 35-55 frames (floats for a while)
+    color = random pick from 8-color high-saturation palette
     rotation = random() × 2π
     rotationSpeed = (random()-0.5) × 0.3
-    phase = random() × 2π（3D 翻轉相位）
+    phase = random() × 2π (3D tumble phase)
 
 update:
     x += vx, y += vy
-    vy += 0.15                                 // 重力（比 burst 強）
-    vx *= 0.98                                 // 空氣阻力
-    vx += sin(life × 0.1 + phase) × 0.1       // 左右搖擺
+    vy += 0.15                                 // Gravity (stronger than Burst)
+    vx *= 0.98                                 // Air resistance
+    vx += sin(life × 0.1 + phase) × 0.1       // Left-right swaying
     rotation += rotationSpeed
-    alpha = 1 - progress²                      // 後期快速淡出
+    alpha = 1 - progress²                      // Rapid fade-out in later phase
 
 render:
     translate(x, y) → rotate(rotation)
-    scaleX = cos(life × 0.15 + phase)          // 3D 翻轉
-    drawWidth = width × |scaleX|               // scaleX→0 時紙片變成一條線
+    scaleX = cos(life × 0.15 + phase)          // 3D tumble
+    drawWidth = width × |scaleX|               // When scaleX→0, the paper becomes a line
     fillRect(-w/2, -h/2, w, h)
 ```
 
-**3D 翻轉效果**：`cos(life × 0.15 + phase)` 讓寬度在正負間擺盪。取絕對值後，紙片會週期性地從正面→側面→正面翻轉，模擬紙片在空中翻滾的 3D 效果。
+**3D tumble effect**: `cos(life × 0.15 + phase)` makes the width oscillate between positive and negative. After taking the absolute value, the paper periodically flips from face → edge → face, simulating the 3D effect of paper tumbling in the air.
 
 ---
 
-### 特效 7：🫧 泡泡飄浮 (Bubble)
+### Effect 7: 🫧 Bubble
 
-**檔案**：`content/effects/bubble.js`
+**File**: `content/effects/bubble.js`
 
-**視覺效果**：半透明彩色泡泡從游標往上飄浮，帶有光澤高光和輕微左右搖擺，結尾膨脹破裂。
+**Visual effect**: Semi-transparent colorful bubbles float upward from the caret, with glossy highlights and gentle left-right swaying, expanding and popping at the end.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((4 + random()*6) × intensity)
-  對每個粒子:
-    位置 = 游標 ± 10px
-    vy = -1.5 - random() × 2                   // 向上飄浮
-    大小 = 4-11 px
-    壽命 = 30-55 幀
-    顏色 = [青 #67E8F9, 紫 #A78BFA, 金 #FDE68A, 粉 #FCA5A5, 綠 #86EFAC, 桃 #F9A8D4]
+  particle count = floor((4 + random()*6) × intensity)
+  For each particle:
+    position = caret ± 10px
+    vy = -1.5 - random() × 2                   // Float upward
+    size = 4-11 px
+    lifetime = 30-55 frames
+    color = [cyan #67E8F9, purple #A78BFA, gold #FDE68A, pink #FCA5A5, green #86EFAC, peach #F9A8D4]
     swayAmp = 0.3 + random() × 0.4
 
 update:
-    vx += sin(life × 0.12 + phase) × swayAmp × 0.1  // 搖擺
+    vx += sin(life × 0.12 + phase) × swayAmp × 0.1  // Swaying
     vx *= 0.96
-    vy *= 0.995                                 // 極微阻力
+    vy *= 0.995                                 // Very slight drag
 
-    // 破裂效果：最後 15% 生命膨脹後消失
+    // Pop effect: inflate and vanish in last 15% of lifetime
     progress > 0.85:
-      scale = 1 + (progress - 0.85) × 3        // 膨脹
-      alpha = (1 - progress) / 0.15             // 快速淡出
+      scale = 1 + (progress - 0.85) × 3        // Inflate
+      alpha = (1 - progress) / 0.15             // Rapid fade-out
     else:
-      alpha = 0.7                               // 半透明
+      alpha = 0.7                               // Semi-transparent
 
 render:
-    // 玻璃質感 radial gradient
-    gradient 偏移中心（左上角偏亮）:
-      stop 0: rgba(255,255,255,0.5)             // 高光
-      stop 0.4: rgba(color, 0.25)               // 泡泡主色
-      stop 1: rgba(color, 0.05)                 // 邊緣透明
-    圓形輪廓描邊（rim）
-    橢圓形白色高光（specular highlight）
+    // Glass-like radial gradient
+    gradient with offset center (brighter at upper-left):
+      stop 0: rgba(255,255,255,0.5)             // Highlight
+      stop 0.4: rgba(color, 0.25)               // Bubble main color
+      stop 1: rgba(color, 0.05)                 // Transparent edge
+    Circular outline stroke (rim)
+    Elliptical white highlight (specular highlight)
 ```
 
 ---
 
-### 特效 8：❄️ 冰霜結晶 (Frost)
+### Effect 8: ❄️ Frost
 
-**檔案**：`content/effects/frost.js`
+**File**: `content/effects/frost.js`
 
-**視覺效果**：六角/四角冰晶從游標散射而出，帶分支結構、旋轉，逐漸縮小消失。
+**Visual effect**: Hexagonal/four-pointed ice crystals scatter from the caret, with branching structures and rotation, gradually shrinking and disappearing.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((5 + random()*6) × intensity)
-  對每個粒子:
-    角度 = random() × 2π
-    速度 = 1 + random() × 2.5
-    大小 = 4-9 px
-    壽命 = 25-45 幀
-    顏色 = [白 #FFFFFF, 冰藍 #E0F2FE, 淺藍 #BAE6FD, 天藍 #7DD3FC, 青 #67E8F9]
+  particle count = floor((5 + random()*6) × intensity)
+  For each particle:
+    angle = random() × 2π
+    speed = 1 + random() × 2.5
+    size = 4-9 px
+    lifetime = 25-45 frames
+    color = [white #FFFFFF, ice blue #E0F2FE, light blue #BAE6FD, sky blue #7DD3FC, cyan #67E8F9]
     rotationSpeed = (random()-0.5) × 0.08
-    spokes = 6 或 4（隨機選擇六角或四角）
+    spokes = 6 or 4 (randomly chosen hexagonal or four-pointed)
 
 update:
     x += vx, y += vy
-    vx *= 0.95, vy *= 0.95                     // 減速
+    vx *= 0.95, vy *= 0.95                     // Deceleration
     rotation += rotationSpeed
-    scale *= 0.985                              // 逐漸縮小
-    alpha = 1 - progress                        // 線性淡出
+    scale *= 0.985                              // Gradually shrink
+    alpha = 1 - progress                        // Linear fade-out
 
 render:
-    對每個 spoke（6 或 4 條）:
-      從中心向外畫主幹線段（長度 = size × scale）
-      在主幹 60% 處畫兩條分支（長度 = 35% 主幹，±0.5 rad 角度）
+    For each spoke (6 or 4):
+      Draw main stem line from center outward (length = size × scale)
+      Draw two branches at 60% of the stem (length = 35% of stem, ±0.5 rad angle)
     lineCap = 'round', lineWidth = 1.2
 ```
 
-**結晶形狀**：每條 spoke 由一條主幹 + 兩條分支組成，6 條 spoke 等角分佈形成雪花圖案。4-spoke 變體則形成十字結晶。分支在主幹 60% 位置，角度 ±0.5 rad（約 ±29°），近似真實雪花的分支角度。
+**Crystal shape**: Each spoke consists of one main stem + two branches. Six spokes evenly distributed form a snowflake pattern. The 4-spoke variant forms a cross crystal. Branches are at the 60% position of the stem, at angles of ±0.5 rad (~±29°), approximating real snowflake branching angles.
 
 ---
 
-### 特效 9：🔥 火焰上升 (Flame)
+### Effect 9: 🔥 Flame
 
-**檔案**：`content/effects/flame.js`
+**File**: `content/effects/flame.js`
 
-**視覺效果**：從游標位置產生火焰粒子，向上飄升並左右搖曳，顏色隨生命週期從亮黃漸變到暗紅，逐漸縮小消失。
+**Visual effect**: Flame particles spawn from the caret position, rising upward with left-right flickering. Color transitions from bright yellow to dark red over the lifetime, gradually shrinking and disappearing.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((8 + random()*10) × intensity)
-  對每個粒子:
-    位置 = 游標 x ± 7px, y = 游標 y
-    vy = -2.5 - random()*3.5                  // 強力向上
-    vx = ± random()*1.5                       // 初始水平偏移
-    大小 = 6-12 px
-    壽命 = 30-55 幀
+  particle count = floor((8 + random()*10) × intensity)
+  For each particle:
+    position = caret x ± 7px, y = caret y
+    vy = -2.5 - random()*3.5                  // Strong upward force
+    vx = ± random()*1.5                       // Initial horizontal offset
+    size = 6-12 px
+    lifetime = 30-55 frames
 
 update:
     x += vx, y += vy
-    vx += (random()-0.5) × 0.2               // 隨機水平搖曳
-    vx *= 0.95                                // 搖曳阻尼
-    size *= 0.97                              // 每幀縮小 3%
+    vx += (random()-0.5) × 0.2               // Random horizontal flickering
+    vx *= 0.95                                // Flickering damping
+    size *= 0.97                              // Shrink 3% per frame
     progress = life / maxLife
-    alpha = 1 - progress²                     // 二次方淡出（前期幾乎不淡）
+    alpha = 1 - progress²                     // Quadratic fade-out (almost no fade in early phase)
 
-    顏色依 progress 階段切換:
-        0%  - 25%  → #FFFF80 亮黃
-        25% - 50%  → #FFA500 橙色
-        50% - 75%  → #FF4500 紅橙
-        75% - 100% → #8B0000 暗紅
+    Color transitions by progress stage:
+        0%  - 25%  → #FFFF80 bright yellow
+        25% - 50%  → #FFA500 orange
+        50% - 75%  → #FF4500 red-orange
+        75% - 100% → #8B0000 dark red
 
 render:
-    建立 RadialGradient(中心→邊緣):
-      stop 0: 當前顏色（實心）
-      stop 1: rgba(0,0,0,0)（透明）
-    填充圓形 — 產生柔和的發光球效果
+    Create RadialGradient (center → edge):
+      stop 0: current color (solid)
+      stop 1: rgba(0,0,0,0) (transparent)
+    Fill circle — produces a soft glowing sphere effect
 ```
 
-**搖曳演算法**：每幀對 `vx` 加一個 `[-0.1, +0.1]` 的隨機擾動，再乘以 0.95 的阻尼。這創造了類似布朗運動的自然搖擺，不會累積成單方向漂移。
+**Flickering algorithm**: Each frame adds a random perturbation of `[-0.1, +0.1]` to `vx`, then multiplies by a damping factor of 0.95. This creates a natural sway similar to Brownian motion, without accumulating into a unidirectional drift.
 
-**顏色演化**：模擬火焰從核心（最熱）到外圍（最冷）的光譜變化。離散的四階段切換在快速動畫中視覺上等同於漸變。
+**Color evolution**: Simulates the spectral shift from the core (hottest) to the outer edge (coolest) of a flame. The discrete four-stage switching appears as a smooth gradient in fast animation.
 
-**徑向漸層**：每個粒子用 `createRadialGradient` 畫一個中心實色、邊緣透明的圓，產生「發光球」外觀，比實心圓更像真實火焰。
+**Radial gradient**: Each particle uses `createRadialGradient` to draw a circle that is solid at the center and transparent at the edges, producing a "glowing sphere" appearance that looks more like a real flame than a solid circle.
 
-### 特效 10：🌊 水波漣漪 (Ripple)
+### Effect 10: 🌊 Ripple
 
-**檔案**：`content/effects/ripple.js`
+**File**: `content/effects/ripple.js`
 
-**視覺效果**：從游標擴散出同心圓波紋，像水面被觸碰一樣，由淺青漸變為藍色，線條逐漸變細。
+**Visual effect**: Concentric ring waves expand outward from the caret, like a water surface being touched, transitioning from light cyan to blue, with lines gradually thinning.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((2 + random()*2) × intensity)  // 2-3 個波紋環
-  對每個粒子 i:
-    位置 = 游標（不偏移）
-    大小 = 2 + i × 3（錯開初始半徑）
-    壽命 = 25-40 幀
+  particle count = floor((2 + random()*2) × intensity)  // 2-3 ripple rings
+  For each particle i:
+    position = caret (no offset)
+    size = 2 + i × 3 (staggered initial radius)
+    lifetime = 25-40 frames
     expandSpeed = 1.2 + random() × 0.8 px/frame
-    delay = i × 4 幀（逐層延遲出現）
+    delay = i × 4 frames (sequential delay for each layer)
 
 update:
-    if life < delay → alpha = 0（等待出場）
+    if life < delay → alpha = 0 (waiting to appear)
     else:
-      size += expandSpeed                       // 持續擴大
-      alpha = 1 - activeProgress²               // 二次方淡出
-      顏色依進度：青 #67E8F9 → 藍 #38BDF8 → 深藍 #3B82F6
+      size += expandSpeed                       // Continuously expand
+      alpha = 1 - activeProgress²               // Quadratic fade-out
+      Color by progress: cyan #67E8F9 → blue #38BDF8 → deep blue #3B82F6
 
 render:
-    ctx.arc 描邊圓形（不填充）
-    lineWidth = max(0.5, 2 - progress × 1.5)   // 越遠越細
+    ctx.arc stroke circle (no fill)
+    lineWidth = max(0.5, 2 - progress × 1.5)   // Thinner at greater distance
 ```
 
 ---
 
-### 特效 11：⚡ 電流脈衝 (Electric)
+### Effect 11: ⚡ Electric
 
-**檔案**：`content/effects/electric.js`
+**File**: `content/effects/electric.js`
 
-**視覺效果**：從游標射出 2-3 條隨機鋸齒閃電，明亮青白色，極短壽命，帶電弧抖動效果。
+**Visual effect**: 2-3 random jagged lightning bolts shoot from the caret, in bright cyan-white colors, with extremely short lifetimes and arc jittering effects.
 
-**演算法**：
+**Algorithm**:
 
 ```
 spawn:
-  粒子數量 = floor((2 + random()*2) × intensity)
-  對每條閃電:
-    生成折線路徑：從 (0,0) 出發，5-8 段
-    每段長 8-15 px
-    方向 = 前一段方向 ± random() × 60°
-    起始角度完全隨機（360°）
-    壽命 = 8-15 幀（極短）
-    顏色 = [白 #FFFFFF, 淺青 #67E8F9, 冰青 #A5F3FC, 冰藍 #E0F2FE]
+  particle count = floor((2 + random()*2) × intensity)
+  For each lightning bolt:
+    Generate polyline path: starting from (0,0), 5-8 segments
+    Each segment length 8-15 px
+    Direction = previous segment direction ± random() × 60°
+    Starting angle completely random (360°)
+    lifetime = 8-15 frames (extremely short)
+    color = [white #FFFFFF, light cyan #67E8F9, ice cyan #A5F3FC, ice blue #E0F2FE]
 
 update:
-    不移動（閃電是瞬間的）
-    alpha 線性快速衰減
-    每幀對路徑每個節點加 ±1px 隨機擾動（電弧抖動）
+    No movement (lightning is instantaneous)
+    alpha decays linearly and rapidly
+    Each frame adds ±1px random perturbation to each path node (arc jitter)
 
 render:
-    底層：lineWidth=4, alpha×0.3, 同色 → 光暈
-    上層：lineWidth=1.5, alpha, 白色 → 明亮核心
-    moveTo/lineTo 畫折線, lineCap='round', lineJoin='round'
-    在折線節點隨機畫小圓點 → 火花
+    Bottom layer: lineWidth=4, alpha×0.3, same color → glow
+    Top layer: lineWidth=1.5, alpha, white → bright core
+    moveTo/lineTo to draw polyline, lineCap='round', lineJoin='round'
+    Randomly draw small dots at polyline nodes → sparks
 ```
 
-**鋸齒路徑生成**：每段方向在前一段基礎上 ±60° 隨機偏轉，產生自然的鋸齒形。段長 8-15px 的隨機性讓每條閃電都獨一無二。
+**Jagged path generation**: Each segment's direction deviates ±60° randomly from the previous one, producing a natural zigzag shape. The random segment length of 8-15px ensures each lightning bolt is unique.
 
-**雙層渲染**：底層寬線低透明度模擬光暈擴散，上層細線高亮度形成閃電核心，兩層疊加產生真實的電弧視覺。
+**Dual-layer rendering**: The bottom layer uses wide lines at low opacity to simulate glow diffusion, while the top layer uses thin lines at high brightness to form the lightning core. The two layers combined produce a realistic electric arc visual.
 
 ---
 
-### 特效 12：🌀 擴散漸層 (Diffuse)
+### Effect 12: 🌀 Diffuse
 
-**檔案**：`content/effects/diffuse.js`
+**File**: `content/effects/diffuse.js`
 
-**視覺效果**：粒子沿著剛輸入的字元的**實際輪廓邊緣**向外擴散。例如輸入「A」，粒子會從 A 的三角輪廓向外飛散。
+**Visual effect**: Particles disperse outward along the **actual contour edges** of the just-typed character. For example, typing "A" causes particles to scatter from the triangular outline of A.
 
-**這是十二種特效中演算法最複雜的**，涉及離屏渲染和邊緣偵測。
+**This is the most algorithmically complex of the twelve effects**, involving offscreen rendering and edge detection.
 
-**演算法（三階段）**：
+**Algorithm (three stages)**:
 
-#### 階段一：離屏渲染取得字元像素
-
-```
-1. 建立一個隱藏的 <canvas>（offscreen），大小 = fontSize × 2.5
-2. 設定與輸入框相同的 font（family, size, weight）
-3. 在 canvas 正中央用 fillText 繪製該字元
-4. 用 measureText 取得字元實際寬度（用於定位）
-```
-
-#### 階段二：邊緣偵測演算法
+#### Stage 1: Offscreen Rendering to Obtain Character Pixels
 
 ```
-5. 呼叫 getImageData 取得整個 canvas 的像素陣列
-6. 逐像素掃描（大字體時 step=2 加速）：
-   對每個像素 (x, y):
-     if alpha[x,y] < 50 → 跳過（不是字元的一部分）
-     檢查四鄰域：
+1. Create a hidden <canvas> (offscreen), size = fontSize × 2.5
+2. Set the same font as the input field (family, size, weight)
+3. Use fillText to draw the character at the canvas center
+4. Use measureText to get the actual character width (for positioning)
+```
+
+#### Stage 2: Edge Detection Algorithm
+
+```
+5. Call getImageData to get the entire canvas pixel array
+6. Scan pixels row by row (step=2 for large fonts to speed up):
+   For each pixel (x, y):
+     if alpha[x,y] < 50 → skip (not part of the character)
+     Check four neighbors:
        top    = alpha[x, y-1]
        bottom = alpha[x, y+1]
        left   = alpha[x-1, y]
        right  = alpha[x+1, y]
-     if 任一鄰居 alpha < 50 → 這是邊緣像素！記錄 (x - cx, y - cy)
+     if any neighbor alpha < 50 → this is an edge pixel! Record (x - cx, y - cy)
 
-結果：得到一組相對於字元中心的邊緣座標陣列
+Result: an array of edge coordinates relative to the character center
 ```
 
 ```
-例：字元 "A" 的邊緣偵測結果（概念圖）
+Example: Edge detection result for character "A" (conceptual diagram)
 
      ·  ·
     · ·· ·
@@ -887,138 +888,138 @@ render:
  ·  ·    ·  ·
 ·  ·      ·  ·
 
-· = 邊緣像素（內部填充像素和外部空白像素不計入）
+· = edge pixel (interior fill pixels and exterior blank pixels are excluded)
 ```
 
-#### 階段三：粒子產生與動畫
+#### Stage 3: Particle Spawning and Animation
 
 ```
-7. 從邊緣像素中均勻取樣 12-30 個點
-8. 對每個取樣點:
-     螢幕座標 = (游標x - 字寬/2 + edge.x, 游標y + edge.y)
-     速度方向 = normalize(edge.x, edge.y) × (0.5 + random())
-               ↑ 從字元中心指向邊緣點的方向 = 向外法線
+7. Uniformly sample 12-30 points from the edge pixels
+8. For each sampled point:
+     screen coordinates = (caret x - charWidth/2 + edge.x, caret y + edge.y)
+     velocity direction = normalize(edge.x, edge.y) × (0.5 + random())
+               ↑ Direction from character center to edge point = outward normal
 
 update:
     x += vx, y += vy
-    vx *= 0.97, vy *= 0.97                    // 減速
+    vx *= 0.97, vy *= 0.97                    // Deceleration
     scale:
-      progress < 0.3 → 1 + progress×2         // 前 30%：微微脹大
-      progress ≥ 0.3 → (1-progress) × 1.8     // 後 70%：縮小消失
-    alpha = (1-progress)² × 0.9                // 二次方淡出
+      progress < 0.3 → 1 + progress×2         // First 30%: slight expansion
+      progress ≥ 0.3 → (1-progress) × 1.8     // Last 70%: shrink and vanish
+    alpha = (1-progress)² × 0.9                // Quadratic fade-out
 
 render:
-    RadialGradient 發光球，顏色從實心到透明邊緣
-    顏色 = 隨機 [紫 #A78BFA, 青 #67E8F9, 金 #FDE68A, 粉 #F9A8D4, 白 #FFFFFF]
+    RadialGradient glowing sphere, color from solid to transparent edge
+    color = random [purple #A78BFA, cyan #67E8F9, gold #FDE68A, pink #F9A8D4, white #FFFFFF]
 ```
 
-**效能考量**：
-- offscreen canvas 只建立一次，之後重複使用
-- `getContext('2d', { willReadFrequently: true })` 提示瀏覽器使用 CPU 而非 GPU 後端，加速 `getImageData`
-- 大字體（>30px）時掃描步長設為 2，將像素掃描量減少 75%
+**Performance considerations**:
+- The offscreen canvas is created only once and reused afterwards
+- `getContext('2d', { willReadFrequently: true })` hints the browser to use the CPU rather than GPU backend, speeding up `getImageData`
+- For large fonts (>30px), the scan step is set to 2, reducing pixel scan volume by 75%
 
 ---
 
-## 特效介面規範與擴充方式
+## Effect Interface Specification & Extension Guide
 
-每個特效是一個獨立的 JavaScript 物件，必須實作以下介面：
+Each effect is a standalone JavaScript object that must implement the following interface:
 
 ```javascript
 const MyEffect = {
-  name: 'my-effect',           // 唯一識別碼（對應 EFFECT_REGISTRY）
-  label: '我的特效',            // 顯示名稱（用於 Popup UI）
-  icon: '🎨',                  // Popup 卡片圖示
+  name: 'my-effect',           // Unique identifier (corresponds to EFFECT_REGISTRY)
+  label: 'My Effect',          // Display name (used in Popup UI)
+  icon: '🎨',                  // Popup card icon
 
   /**
-   * 在游標位置 (x, y) 產生粒子
-   * @param {number} x         - viewport X 座標
-   * @param {number} y         - viewport Y 座標
-   * @param {number} intensity - 強度倍率 0.1-1.0
-   * @param {Function} acquire - 從物件池取得空閒粒子，回傳粒子物件或 null
+   * Spawn particles at caret position (x, y)
+   * @param {number} x         - viewport X coordinate
+   * @param {number} y         - viewport Y coordinate
+   * @param {number} intensity - intensity multiplier 0.1-1.0
+   * @param {Function} acquire - acquire an idle particle from the object pool, returns particle object or null
    * @param {Object|null} context - { char, fontFamily, fontSize, fontWeight }
    */
   spawn(x, y, intensity, acquire, context) { ... },
 
   /**
-   * 每幀更新一個粒子的狀態
-   * @param {Object} p - 粒子物件
+   * Update a single particle's state each frame
+   * @param {Object} p - particle object
    */
   update(p) { ... },
 
   /**
-   * 每幀繪製一個粒子
+   * Render a single particle each frame
    * @param {CanvasRenderingContext2D} ctx
-   * @param {Object} p - 粒子物件
+   * @param {Object} p - particle object
    */
   render(ctx, p) { ... }
 };
 ```
 
-### 新增特效的步驟
+### Steps to Add a New Effect
 
-1. 在 `content/effects/` 新增 JS 檔（如 `my-effect.js`），實作上述介面
-2. 在 `shared/constants.js` 的 `EFFECT_REGISTRY` 陣列中加入名稱
-3. 在 `manifest.json` 的 `content_scripts.js` 陣列中加入檔案路徑
-4. 在 `content/content.js` 的 `EFFECTS` 物件中加入映射
-5. 在 `popup/popup.html` 的 `effect-list` 中加入按鈕（含 `data-i18n` 屬性）
-6. 在所有 `_locales/*/messages.json` 中加入翻譯 key
-7. 在 `prototype/index.html` 中加入按鈕與 `<script>` 標籤
-8. 在 `prototype/prototype.js` 的 `EFFECTS` 物件中加入映射
+1. Add a new JS file in `content/effects/` (e.g., `my-effect.js`), implementing the interface above
+2. Add the name to the `EFFECT_REGISTRY` array in `shared/constants.js`
+3. Add the file path to the `content_scripts.js` array in `manifest.json`
+4. Add the mapping to the `EFFECTS` object in `content/content.js`
+5. Add a button to the `effect-list` in `popup/popup.html` (with `data-i18n` attribute)
+6. Add the translation key to all `_locales/*/messages.json` files
+7. Add a button and `<script>` tag in `prototype/index.html`
+8. Add the mapping to the `EFFECTS` object in `prototype/prototype.js`
 
 ---
 
-## 多國語系 (i18n)
+## Internationalization (i18n)
 
-使用 Chrome Extension 內建的 `chrome.i18n` API，自動根據瀏覽器語系顯示對應語言。
+Uses the Chrome Extension built-in `chrome.i18n` API, automatically displaying the corresponding language based on the browser locale.
 
-### 支援語言
+### Supported Languages
 
-| 語系代碼 | 語言 | 範例（螢光漫舞） |
+| Locale Code | Language | Example (Firefly) |
 |---|---|---|
-| `en` | English（預設） | Firefly |
-| `zh_TW` | 繁體中文 | 螢光漫舞 |
-| `zh_CN` | 简体中文 | 萤光漫舞 |
-| `ja` | 日本語 | 蛍の光 |
-| `ko` | 한국어 | 반딧불이 |
-| `es` | Español | Luciérnaga |
+| `en` | English (default) | Firefly |
+| `zh_TW` | Traditional Chinese | 螢光漫舞 |
+| `zh_CN` | Simplified Chinese | 萤光漫舞 |
+| `ja` | Japanese | 蛍の光 |
+| `ko` | Korean | 반딧불이 |
+| `es` | Spanish | Luciérnaga |
 
-### 運作機制
+### How It Works
 
-- `manifest.json` 中的 `name` 和 `description` 使用 `__MSG_key__` 佔位符，Chrome 會自動替換為對應語系的翻譯
-- `popup.html` 中的 UI 文字元素標記 `data-i18n="key"` 屬性，預設顯示英文
-- `popup.js` 啟動時呼叫 `chrome.i18n.getMessage()` 逐一替換所有 `data-i18n` 元素的文字內容
-- 翻譯檔位於 `_locales/{語系代碼}/messages.json`
+- `name` and `description` in `manifest.json` use `__MSG_key__` placeholders, which Chrome automatically replaces with the translation for the corresponding locale
+- UI text elements in `popup.html` are marked with `data-i18n="key"` attributes, defaulting to English
+- On startup, `popup.js` calls `chrome.i18n.getMessage()` to replace the text content of all `data-i18n` elements one by one
+- Translation files are located at `_locales/{locale_code}/messages.json`
 
-### 新增語言的步驟
+### Steps to Add a New Language
 
-1. 在 `_locales/` 下建立語系資料夾（如 `_locales/fr/`）
-2. 建立 `messages.json`，包含所有 key 的翻譯
-3. 不需要修改任何 JS 或 HTML 程式碼
-
----
-
-## 效能設計
-
-| 設計 | 效能影響 |
-|---|---|
-| 物件池（300 粒子預分配） | 零記憶體分配、零 GC 壓力 |
-| requestAnimationFrame 自動啟停 | 不打字時 CPU 使用率 0% |
-| Canvas `display:none` | 不打字時零合成成本 |
-| 事件節流 16ms | 每幀最多處理一次輸入 |
-| 離屏 canvas 重複使用 | Diffuse 特效避免重複建立 |
-| `willReadFrequently` 提示 | getImageData 使用 CPU 路徑，更快 |
-| 大字體像素步長 ×2 | 邊緣偵測掃描量減少 75% |
-| Closed Shadow DOM | 頁面 CSS 無法觸發重排 |
-
-典型快速打字場景（10 次/秒）：每幀渲染 ~100 個粒子，耗時約 0.5-1ms，遠在 16.6ms 幀預算內。
+1. Create a locale folder under `_locales/` (e.g., `_locales/fr/`)
+2. Create a `messages.json` containing translations for all keys
+3. No modifications to any JS or HTML code are needed
 
 ---
 
-## 已知限制
+## Performance Design
 
-| 限制 | 原因 |
+| Design | Performance Impact |
 |---|---|
-| Google Docs / Sheets / Slides | 使用自定義 Canvas 渲染，不觸發標準 `input` 事件 |
-| Closed Shadow DOM 內的輸入框 | 瀏覽器安全策略禁止外部存取 closed shadow root |
-| Diffuse / Echo 特效在刪除鍵時不觸發 | `e.data` 為 `null`，無字元可渲染 |
-| 某些高度自訂的富文字編輯器（如 Monaco Editor） | 可能使用非標準輸入機制 |
+| Object pool (300 particles pre-allocated) | Zero memory allocation, zero GC pressure |
+| requestAnimationFrame auto start/stop | 0% CPU usage when not typing |
+| Canvas `display:none` | Zero compositing cost when not typing |
+| Event throttle 16ms | At most one input processed per frame |
+| Offscreen canvas reuse | Diffuse effect avoids repeated creation |
+| `willReadFrequently` hint | getImageData uses CPU path, faster |
+| Large font pixel step ×2 | Edge detection scan volume reduced by 75% |
+| Closed Shadow DOM | Page CSS cannot trigger reflow |
+
+Typical rapid typing scenario (10 keystrokes/sec): ~100 particles rendered per frame, taking approximately 0.5-1ms, well within the 16.6ms frame budget.
+
+---
+
+## Known Limitations
+
+| Limitation | Reason |
+|---|---|
+| Google Docs / Sheets / Slides | Uses custom Canvas rendering, does not trigger standard `input` events |
+| Input fields inside Closed Shadow DOM | Browser security policy prohibits external access to closed shadow roots |
+| Diffuse / Text Echo effects do not trigger on delete key | `e.data` is `null`, no character available to render |
+| Some highly customized rich text editors (e.g., Monaco Editor) | May use non-standard input mechanisms |

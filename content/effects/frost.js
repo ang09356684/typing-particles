@@ -5,11 +5,13 @@ const FrostEffect = {
   label: '冰霜結晶',
   icon: '❄️',
 
-  _colors: ['#FFFFFF', '#E0F2FE', '#BAE6FD', '#7DD3FC', '#67E8F9'],
+  _colorsDark: ['#FFFFFF', '#E0F2FE', '#BAE6FD', '#7DD3FC', '#67E8F9'],
+  _colorsLight: ['#1E40AF', '#2563EB', '#3B82F6', '#0369A1', '#1D4ED8'],
 
-  spawn(x, y, intensity, acquire) {
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((5 + Math.random() * 6) * intensity);
-    const colors = this._colors;
+    const isDark = context && context.isDarkBg;
+    const colors = isDark ? this._colorsDark : this._colorsLight;
 
     for (let i = 0; i < count; i++) {
       const p = acquire();

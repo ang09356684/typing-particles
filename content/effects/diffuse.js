@@ -59,7 +59,8 @@ const DiffuseEffect = (() => {
     return { edges, charWidth };
   }
 
-  const COLORS = ['#A78BFA', '#67E8F9', '#FDE68A', '#F9A8D4', '#FFFFFF'];
+  const COLORS_DARK = ['#A78BFA', '#67E8F9', '#FDE68A', '#F9A8D4', '#FFFFFF'];
+  const COLORS_LIGHT = ['#7C3AED', '#0891B2', '#D97706', '#DB2777', '#4F46E5'];
 
   return {
     name: 'diffuse',
@@ -82,7 +83,9 @@ const DiffuseEffect = (() => {
       const centerX = x - charWidth * 0.5;
       const centerY = y;
 
-      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      const isDark = context && context.isDarkBg;
+      const palette = isDark ? COLORS_DARK : COLORS_LIGHT;
+      const color = palette[Math.floor(Math.random() * palette.length)];
 
       for (let i = 0; i < count; i++) {
         const p = acquire();

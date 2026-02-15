@@ -5,9 +5,13 @@ const BurstEffect = {
   label: '粒子爆發',
   icon: '💥',
 
-  spawn(x, y, intensity, acquire) {
+  _colorsDark: ['#FFD700', '#FF8C00', '#FFFFFF', '#87CEEB'],
+  _colorsLight: ['#B45309', '#C2410C', '#7C3AED', '#0369A1'],
+
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((6 + Math.random() * 10) * intensity);
-    const colors = ['#FFD700', '#FF8C00', '#FFFFFF', '#87CEEB'];
+    const isDark = context && context.isDarkBg;
+    const colors = isDark ? this._colorsDark : this._colorsLight;
 
     for (let i = 0; i < count; i++) {
       const p = acquire();

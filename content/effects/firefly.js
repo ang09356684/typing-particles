@@ -5,11 +5,13 @@ const FireflyEffect = {
   label: '螢光漫舞',
   icon: '✨',
 
-  _colors: ['#FBBF24', '#A3E635', '#BEF264', '#FDE68A', '#D9F99D'],
+  _colorsDark: ['#FBBF24', '#A3E635', '#BEF264', '#FDE68A', '#D9F99D'],
+  _colorsLight: ['#B45309', '#15803D', '#4D7C0F', '#92400E', '#166534'],
 
-  spawn(x, y, intensity, acquire) {
+  spawn(x, y, intensity, acquire, context) {
     const count = Math.floor((4 + Math.random() * 6) * intensity);
-    const colors = this._colors;
+    const isDark = context && context.isDarkBg;
+    const colors = isDark ? this._colorsDark : this._colorsLight;
 
     for (let i = 0; i < count; i++) {
       const p = acquire();
@@ -32,6 +34,7 @@ const FireflyEffect = {
       p.custom.phase = Math.random() * Math.PI * 2;    // flicker phase
       p.custom.flickerSpeed = 0.15 + Math.random() * 0.15;
       p.custom.wanderPhase = Math.random() * Math.PI * 2;
+      p.custom.isDark = isDark;
     }
   },
 
@@ -87,7 +90,7 @@ const FireflyEffect = {
 
     // Bright core
     ctx.globalAlpha = Math.min(1, p.alpha * 1.5);
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = p.custom.isDark ? '#FFFFFF' : p.color;
     ctx.beginPath();
     ctx.arc(p.x, p.y, r * 0.6, 0, Math.PI * 2);
     ctx.fill();

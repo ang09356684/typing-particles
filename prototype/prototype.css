@@ -136,3 +136,30 @@ textarea.test-input {
   content: attr(data-placeholder);
   color: #555;
 }
+
+/* Section titles */
+.section-title {
+  font-size: 1rem;
+  color: #aaa;
+  margin-bottom: 12px;
+  margin-top: 8px;
+}
+
+/* Light background inputs */
+.test-input.light-bg {
+  background: #FFFFFF;
+  color: #1a1a2e;
+  border-color: #ccc;
+}
+
+.test-input.light-bg:focus {
+  border-color: #3B82F6;
+}
+
+.test-input.light-bg::placeholder {
+  color: #999;
+}
+
+.editable.light-bg:empty::before {
+  color: #999;
+}
