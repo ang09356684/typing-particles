@@ -6,6 +6,7 @@
   const DEFAULT = { enabled: true, effect: 'burst', intensity: 0.5 };
 
   // --- i18n ---
+  document.documentElement.lang = chrome.i18n.getUILanguage();
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const msg = chrome.i18n.getMessage(el.dataset.i18n);
     if (msg) el.textContent = msg;
