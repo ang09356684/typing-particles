@@ -81,32 +81,72 @@ const CaretDetector = (() => {
   }
 
   /**
+   * Check if a DOMRect looks like a valid caret position
+   * (has non-zero height and isn't stuck at the viewport origin)
+   */
+  function _isUsableRect(r) {
+    return r && r.height > 0 && !(r.left === 0 && r.top === 0);
+  }
+
+  /**
+   * Check if a point is reasonably inside (or near) an element's bounds
+   */
+  function _isInsideElement(r, elRect, margin) {
+    margin = margin || 30;
+    return r.left >= elRect.left - margin && r.left <= elRect.right + margin &&
+           r.top  >= elRect.top  - margin && r.top  <= elRect.bottom + margin;
+  }
+
+  /**
    * Get caret coordinates for contenteditable elements
    */
-  function _getCaretFromContentEditable() {
+  function _getCaretFromContentEditable(el) {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return null;
     const range = sel.getRangeAt(0).cloneRange();
     range.collapse(true);
 
-    // Try getBoundingClientRect first
-    let rect = range.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    let rect = null;
 
-    // If rect is zero (empty contenteditable), try inserting a temp node
-    if (rect.width === 0 && rect.height === 0 && rect.x === 0 && rect.y === 0) {
+    // Method 1: getClientRects() — more reliable for collapsed ranges on Windows Chrome
+    const rects = range.getClientRects();
+    if (rects.length > 0 && _isUsableRect(rects[0])) {
+      rect = rects[0];
+    }
+
+    // Method 2: getBoundingClientRect()
+    if (!rect) {
+      const bRect = range.getBoundingClientRect();
+      if (_isUsableRect(bRect)) {
+        rect = bRect;
+      }
+    }
+
+    // Method 3: insert a temporary zero-width space to force layout
+    if (!rect) {
       const temp = document.createElement('span');
-      temp.textContent = '\u200B'; // zero-width space
-      range.insertNode(temp);
-      rect = temp.getBoundingClientRect();
-      temp.parentNode.removeChild(temp);
+      temp.textContent = '\u200B';
+      try {
+        range.insertNode(temp);
+        const tempRect = temp.getBoundingClientRect();
+        if (_isUsableRect(tempRect)) {
+          rect = tempRect;
+        }
+        temp.parentNode.removeChild(temp);
+      } catch (_) {
+        // insertNode can fail in some editors; ignore
+        if (temp.parentNode) temp.parentNode.removeChild(temp);
+      }
       // Restore selection
       sel.removeAllRanges();
       sel.addRange(range);
     }
 
-    if (rect.width === 0 && rect.height === 0 && rect.x === 0 && rect.y === 0) {
-      return null;
-    }
+    if (!rect) return null;
+
+    // Validate: the caret should be within (or very near) the element
+    if (!_isInsideElement(rect, elRect, 30)) return null;
 
     return { x: rect.left, y: rect.top + rect.height * 0.5 };
   }
@@ -123,7 +163,7 @@ const CaretDetector = (() => {
 
     // contenteditable
     if (el.isContentEditable) {
-      return _getCaretFromContentEditable();
+      return _getCaretFromContentEditable(el);
     }
 
     // input / textarea
